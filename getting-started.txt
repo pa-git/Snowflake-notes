@@ -1,3 +1,14 @@
++-----------------------------------------------------+
+| In this file                                        |
+|-----------------------------------------------------|
+| 1- Access your account using SnowSQL                |
+| 2- Create a database                                |
+| 3- Create a table                                   |
+| 4- Create a vitual warehouse                        |
+| 5- Load data using User, Table and Named Stage      |
+| 6- Create a File Format and a Named Stage           |
++-----------------------------------------------------+
+
 -- Access your account;
 ----------------------------------------
 
