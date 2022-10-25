@@ -11,6 +11,9 @@
 
 -- Access your account;
 ----------------------------------------
+-- First you need a Snowflake account: https://signup.snowflake.com/
+-- Second you will have installed SnowSQL: https://docs.snowflake.com/en/user-guide/snowsql-install-config.html
+-- Then in your Terminal:
 
 λ snowsql -a XXXXXXX.canada-central.azure -u PACO
 Password:
