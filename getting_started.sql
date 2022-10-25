@@ -24,7 +24,7 @@ Type SQL statements or !help
 -- Create a database;
 ----------------------------------------
 
-PACO#(no warehouse)@(no database).(no schema)>CREATE OR REPLACE DATABASE SANDBOX;
+CREATE OR REPLACE DATABASE SANDBOX;
 +----------------------------------------+
 | status                                 |
 |----------------------------------------|
