@@ -1,3 +1,4 @@
+# Connect to Snowflake using SnowSQL CLI
 λ snowsql -a XXXXXXX.canada-central.azure -u PACO
 Password:
 
