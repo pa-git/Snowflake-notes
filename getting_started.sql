@@ -33,7 +33,7 @@ CREATE OR REPLACE DATABASE SANDBOX;
 1 Row(s) produced. Time Elapsed: 0.214s
 
 -- Public schema is created by default;
-PACO#(no warehouse)@SANDBOX.PUBLIC>SELECT CURRENT_DATABASE(), CURRENT_SCHEMA();
+SELECT CURRENT_DATABASE(), CURRENT_SCHEMA();
 +--------------------+------------------+
 | CURRENT_DATABASE() | CURRENT_SCHEMA() |
 |--------------------+------------------|
@@ -46,7 +46,7 @@ PACO#(no warehouse)@SANDBOX.PUBLIC>SELECT CURRENT_DATABASE(), CURRENT_SCHEMA();
 -- See Snowflake datatypes: https://docs.snowflake.com/en/sql-reference/data-types.html;
 -- I mostlhy use NUMBER for anything NUMERIC, VARCHAR for any TEXT, VARIANT for semi structured data such as JSON;
 
-PACO#(no warehouse)@SANDBOX.PUBLIC>CREATE OR REPLACE TABLE TITANIC (
+CREATE OR REPLACE TABLE TITANIC (
                                    PassengerId NUMBER,
                                    Survived NUMBER,
                                    Pclass NUMBER,
@@ -71,7 +71,7 @@ PACO#(no warehouse)@SANDBOX.PUBLIC>CREATE OR REPLACE TABLE TITANIC (
 ----------------------------------------
 -- A Virtual Warehouse is needed to load data and run queries;
 
-PACO#(no warehouse)@SANDBOX.PUBLIC>CREATE OR REPLACE WAREHOUSE SANDBOX_WH WITH
+CREATE OR REPLACE WAREHOUSE SANDBOX_WH WITH
                                    WAREHOUSE_SIZE = 'X-SMALL'
                                    AUTO_SUSPEND = 180
                                    AUTO_RESUME = TRUE
@@ -93,7 +93,7 @@ PACO#(no warehouse)@SANDBOX.PUBLIC>CREATE OR REPLACE WAREHOUSE SANDBOX_WH WITH
 -- Example: Load data using user stage;
 ----------------------------------------
 
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>PUT file://C:\Users\Public\Downloads\titanic.csv @~;
+PUT file://C:\Users\Public\Downloads\titanic.csv @~;
 +-------------+----------------+-------------+-------------+--------------------+--------------------+----------+---------+
 | source      | target         | source_size | target_size | source_compression | target_compression | status   | message |
 |-------------+----------------+-------------+-------------+--------------------+--------------------+----------+---------|
@@ -101,7 +101,7 @@ PACO#SANDBOX_WH@SANDBOX.PUBLIC>PUT file://C:\Users\Public\Downloads\titanic.csv 
 +-------------+----------------+-------------+-------------+--------------------+--------------------+----------+---------+
 1 Row(s) produced. Time Elapsed: 1.028s
 
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>COPY INTO TITANIC FROM @~/titanic.csv
+COPY INTO TITANIC FROM @~/titanic.csv
                                FILE_FORMAT = (TYPE = csv FIELD_DELIMITER = "," FIELD_OPTIONALLY_ENCLOSED_BY = '"' SKIP_HEADER = 1);
 +----------------+--------+-------------+-------------+-------------+-------------+-------------+------------------+-----------------------+-------------------------+
 | file           | status | rows_parsed | rows_loaded | error_limit | errors_seen | first_error | first_error_line | first_error_character | first_error_column_name |
@@ -111,7 +111,7 @@ PACO#SANDBOX_WH@SANDBOX.PUBLIC>COPY INTO TITANIC FROM @~/titanic.csv
 1 Row(s) produced. Time Elapsed: 2.034s
 
 -- Check data;
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>SELECT * FROM TITANIC LIMIT 10;
+SELECT * FROM TITANIC LIMIT 10;
 +-------------+----------+--------+-----------------------------------------------------+--------+-----+-------+-------+------------------+----------+-------+----------+
 | PASSENGERID | SURVIVED | PCLASS | NAME                                                | SEX    | AGE | SIBSP | PARCH | TICKET           |     FARE | CABIN | EMBARKED |
 |-------------+----------+--------+-----------------------------------------------------+--------+-----+-------+-------+------------------+----------+-------+----------|
@@ -129,7 +129,7 @@ PACO#SANDBOX_WH@SANDBOX.PUBLIC>SELECT * FROM TITANIC LIMIT 10;
 10 Row(s) produced. Time Elapsed: 0.773s
 
 -- Truncate and do it again from Table Stage;
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>TRUNCATE TITANIC;
+TRUNCATE TITANIC;
 +----------------------------------+
 | status                           |
 |----------------------------------|
@@ -137,7 +137,7 @@ PACO#SANDBOX_WH@SANDBOX.PUBLIC>TRUNCATE TITANIC;
 +----------------------------------+
 1 Row(s) produced. Time Elapsed: 0.676s
 
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>SELECT * FROM TITANIC LIMIT 10;
+SELECT * FROM TITANIC LIMIT 10;
 +-------------+----------+--------+------+-----+-----+-------+-------+--------+------+-------+----------+
 | PASSENGERID | SURVIVED | PCLASS | NAME | SEX | AGE | SIBSP | PARCH | TICKET | FARE | CABIN | EMBARKED |
 |-------------+----------+--------+------+-----+-----+-------+-------+--------+------+-------+----------|
@@ -147,7 +147,7 @@ PACO#SANDBOX_WH@SANDBOX.PUBLIC>SELECT * FROM TITANIC LIMIT 10;
 -- Example: Load using table stage;
 ----------------------------------------
 
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>PUT file://C:\Users\Public\Downloads\titanic.csv @%TITANIC;
+PUT file://C:\Users\Public\Downloads\titanic.csv @%TITANIC;
 +-------------+----------------+-------------+-------------+--------------------+--------------------+----------+---------+
 | source      | target         | source_size | target_size | source_compression | target_compression | status   | message |
 |-------------+----------------+-------------+-------------+--------------------+--------------------+----------+---------|
@@ -155,7 +155,7 @@ PACO#SANDBOX_WH@SANDBOX.PUBLIC>PUT file://C:\Users\Public\Downloads\titanic.csv 
 +-------------+----------------+-------------+-------------+--------------------+--------------------+----------+---------+
 1 Row(s) produced. Time Elapsed: 1.063s
 
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>COPY INTO TITANIC FROM @%TITANIC/titanic.csv
+COPY INTO TITANIC FROM @%TITANIC/titanic.csv
                                FILE_FORMAT = (TYPE = CSV FIELD_DELIMITER = "," FIELD_OPTIONALLY_ENCLOSED_BY = '"' SKIP_HEADER = 1);
 +----------------+--------+-------------+-------------+-------------+-------------+-------------+------------------+-----------------------+-------------------------+
 | file           | status | rows_parsed | rows_loaded | error_limit | errors_seen | first_error | first_error_line | first_error_character | first_error_column_name |
@@ -165,7 +165,7 @@ PACO#SANDBOX_WH@SANDBOX.PUBLIC>COPY INTO TITANIC FROM @%TITANIC/titanic.csv
 1 Row(s) produced. Time Elapsed: 1.298s
 
 -- Check data;
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>SELECT * FROM TITANIC LIMIT 10;
+SELECT * FROM TITANIC LIMIT 10;
 +-------------+----------+--------+-----------------------------------------------------+--------+-----+-------+-------+------------------+----------+-------+----------+
 | PASSENGERID | SURVIVED | PCLASS | NAME                                                | SEX    | AGE | SIBSP | PARCH | TICKET           |     FARE | CABIN | EMBARKED |
 |-------------+----------+--------+-----------------------------------------------------+--------+-----+-------+-------+------------------+----------+-------+----------|
@@ -183,7 +183,7 @@ PACO#SANDBOX_WH@SANDBOX.PUBLIC>SELECT * FROM TITANIC LIMIT 10;
 10 Row(s) produced. Time Elapsed: 1.638s
 
 -- Truncate and do it again from Named Stage;
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>TRUNCATE TITANIC;
+TRUNCATE TITANIC;
 +----------------------------------+
 | status                           |
 |----------------------------------|
@@ -191,7 +191,7 @@ PACO#SANDBOX_WH@SANDBOX.PUBLIC>TRUNCATE TITANIC;
 +----------------------------------+
 1 Row(s) produced. Time Elapsed: 0.369s
 
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>SELECT * FROM TITANIC LIMIT 10;
+SELECT * FROM TITANIC LIMIT 10;
 +-------------+----------+--------+------+-----+-----+-------+-------+--------+------+-------+----------+
 | PASSENGERID | SURVIVED | PCLASS | NAME | SEX | AGE | SIBSP | PARCH | TICKET | FARE | CABIN | EMBARKED |
 |-------------+----------+--------+------+-----+-----+-------+-------+--------+------+-------+----------|
@@ -202,7 +202,7 @@ PACO#SANDBOX_WH@SANDBOX.PUBLIC>SELECT * FROM TITANIC LIMIT 10;
 ----------------------------------------
 
 -- Create a file format;
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>CREATE OR REPLACE FILE FORMAT MYCSVFORMAT
+CREATE OR REPLACE FILE FORMAT MYCSVFORMAT
                                TYPE = 'CSV'
                                FIELD_DELIMITER = ','
                                FIELD_OPTIONALLY_ENCLOSED_BY = '"'
@@ -215,7 +215,7 @@ PACO#SANDBOX_WH@SANDBOX.PUBLIC>CREATE OR REPLACE FILE FORMAT MYCSVFORMAT
 1 Row(s) produced. Time Elapsed: 0.178s
 
 -- Create the named stage with this file format;
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>CREATE STAGE MY_CSV_STAGE FILE_FORMAT = MYCSVFORMAT;
+CREATE STAGE MY_CSV_STAGE FILE_FORMAT = MYCSVFORMAT;
 +-----------------------------------------------+
 | status                                        |
 |-----------------------------------------------|
@@ -224,7 +224,7 @@ PACO#SANDBOX_WH@SANDBOX.PUBLIC>CREATE STAGE MY_CSV_STAGE FILE_FORMAT = MYCSVFORM
 1 Row(s) produced. Time Elapsed: 0.230s
 
 -- List the named stages;
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>SHOW STAGES;
+SHOW STAGES;
 +-------------------------------+--------------+---------------+-------------+-----+-----------------+--------------------+--------------+---------+--------+----------+-------+----------------------+---------------------+
 | created_on                    | name         | database_name | schema_name | url | has_credentials | has_encryption_key | owner        | comment | region | type     | cloud | notification_channel | storage_integration |
 |-------------------------------+--------------+---------------+-------------+-----+-----------------+--------------------+--------------+---------+--------+----------+-------+----------------------+---------------------|
@@ -233,7 +233,7 @@ PACO#SANDBOX_WH@SANDBOX.PUBLIC>SHOW STAGES;
 1 Row(s) produced. Time Elapsed: 0.146s
 
 -- Put the file in my_csv_stage;
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>PUT file://C:\Users\Public\Downloads\titanic.csv @MY_CSV_STAGE AUTO_COMPRESS = TRUE;
+PUT file://C:\Users\Public\Downloads\titanic.csv @MY_CSV_STAGE AUTO_COMPRESS = TRUE;
 +-------------+----------------+-------------+-------------+--------------------+--------------------+----------+---------+
 | source      | target         | source_size | target_size | source_compression | target_compression | status   | message |
 |-------------+----------------+-------------+-------------+--------------------+--------------------+----------+---------|
@@ -242,7 +242,7 @@ PACO#SANDBOX_WH@SANDBOX.PUBLIC>PUT file://C:\Users\Public\Downloads\titanic.csv 
 1 Row(s) produced. Time Elapsed: 1.455s
 
 -- Copy into the table;
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>COPY INTO TITANIC
+COPY INTO TITANIC
                                FROM @MY_CSV_STAGE/titanic.csv
                                FILE_FORMAT = (FORMAT_NAME = MYCSVFORMAT)
                                ON_ERROR = 'SKIP_FILE';
@@ -254,7 +254,7 @@ PACO#SANDBOX_WH@SANDBOX.PUBLIC>COPY INTO TITANIC
 1 Row(s) produced. Time Elapsed: 1.457s
 
 -- Check data;
-PACO#SANDBOX_WH@SANDBOX.PUBLIC>SELECT * FROM TITANIC LIMIT 10;
+SELECT * FROM TITANIC LIMIT 10;
 +-------------+----------+--------+-----------------------------------------------------+--------+-----+-------+-------+------------------+----------+-------+----------+
 | PASSENGERID | SURVIVED | PCLASS | NAME                                                | SEX    | AGE | SIBSP | PARCH | TICKET           |     FARE | CABIN | EMBARKED |
 |-------------+----------+--------+-----------------------------------------------------+--------+-----+-------+-------+------------------+----------+-------+----------|
