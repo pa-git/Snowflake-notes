@@ -1,5 +1,5 @@
 +-----------------------------------------------------+
-| In this file                                        |
+| Getting started                                     |
 |-----------------------------------------------------|
 | 1- Access your account using SnowSQL                |
 | 2- Create a database                                |
