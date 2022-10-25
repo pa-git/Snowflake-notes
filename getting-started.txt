@@ -1,11 +1,10 @@
-# Connect to Snowflake using SnowSQL CLI
 λ snowsql -a XXXXXXX.canada-central.azure -u PACO
 Password:
 
 * SnowSQL * v1.2.23
 Type SQL statements or !help
 
-PACO#(no warehouse)@(no database).(no schema)>-- Create a database
+-- Create a database
 PACO#(no warehouse)@(no database).(no schema)>CREATE OR REPLACE DATABASE SANDBOX;
 +----------------------------------------+
 | status                                 |
@@ -14,7 +13,7 @@ PACO#(no warehouse)@(no database).(no schema)>CREATE OR REPLACE DATABASE SANDBOX
 +----------------------------------------+
 1 Row(s) produced. Time Elapsed: 0.214s
 
-PACO#(no warehouse)@SANDBOX.PUBLIC>-- Public schema is created by default;
+-- Public schema is created by default;
 PACO#(no warehouse)@SANDBOX.PUBLIC>SELECT CURRENT_DATABASE(), CURRENT_SCHEMA();
 +--------------------+------------------+
 | CURRENT_DATABASE() | CURRENT_SCHEMA() |
@@ -22,8 +21,10 @@ PACO#(no warehouse)@SANDBOX.PUBLIC>SELECT CURRENT_DATABASE(), CURRENT_SCHEMA();
 | SANDBOX            | PUBLIC           |
 +--------------------+------------------+
 1 Row(s) produced. Time Elapsed: 0.129s
-PACO#(no warehouse)@SANDBOX.PUBLIC>-- Create a table;
+
 -- Create a table;
+-- See Snowflake datatypes: https://docs.snowflake.com/en/sql-reference/data-types.html;
+-- I mostlhy use NUMBER for anything NUMERIC, VARCHAR for any TEXT, VARIANT for semi structured data such as JSON;
 PACO#(no warehouse)@SANDBOX.PUBLIC>CREATE OR REPLACE TABLE TITANIC (
                                    PassengerId NUMBER,
                                    Survived NUMBER,
@@ -44,12 +45,8 @@ PACO#(no warehouse)@SANDBOX.PUBLIC>CREATE OR REPLACE TABLE TITANIC (
 | Table TITANIC successfully created. |
 +-------------------------------------+
 1 Row(s) produced. Time Elapsed: 0.850s
-PACO#(no warehouse)@SANDBOX.PUBLIC>-- See Snowflake datatypes: https://docs.snowflake.com/en/sql-reference/data-types.html;
--- See Snowflake datatypes: https://docs.snowflake.com/en/sql-reference/data-types.html;
-PACO#(no warehouse)@SANDBOX.PUBLIC>-- I mostlhy use NUMBER for anything NUMERIC, VARCHAR for any TEXT, VARIANT for semi structu
-                                   red data such as JSON;
--- I mostlhy use NUMBER for anything NUMERIC, VARCHAR for any TEXT, VARIANT for semi structured data such as JSON;
-PACO#(no warehouse)@SANDBOX.PUBLIC>-- A Virtual Warehouse is need to load data and run queries;
+
+-- A Virtual Warehouse is need to load data and run queries;
 -- A Virtual Warehouse is need to load data and run queries;
 PACO#(no warehouse)@SANDBOX.PUBLIC>CREATE OR REPLACE WAREHOUSE SANDBOX_WH WITH
                                    WAREHOUSE_SIZE = 'X-SMALL'
