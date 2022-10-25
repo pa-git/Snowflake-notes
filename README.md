@@ -1,3 +1,3 @@
-# Snowflake
+# Snowflake notes
 
-Notes for jump starting your Snowflake journey
+A collection of notes to jump start your Snowflake journey
