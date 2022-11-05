@@ -46,3 +46,28 @@ FILE_FORMAT = ( TYPE = 'JSON' );
 | json_sample.json.gz | LOADED |           1 |           1 |           1 |           0 | NULL        |             NULL |                  NULL | NULL                    |
 +---------------------+--------+-------------+-------------+-------------+-------------+-------------+------------------+-----------------------+-------------------------+
 1 Row(s) produced. Time Elapsed: 2.191s
+
+Query the data
+--------------------------------------------------------------------------
+-- It's very important to understand the structure of the json data
+-- See json_sample.json file to understand the structure
+
+-- Select the id of the first element in "feeds"                               
+SELECT JSON_DATA:feeds[0].id FROM MY_JSON_TABLE;
++-----------------------+
+| JSON_DATA:FEEDS[0].ID |
+|-----------------------|
+| 2140                  |
++-----------------------+
+1 Row(s) produced. Time Elapsed: 0.173s
+
+-- Select the id of the second element in "feeds"
+SELECT JSON_DATA:feeds[1].id FROM MY_JSON_TABLE;
++-----------------------+
+| JSON_DATA:FEEDS[1].ID |
+|-----------------------|
+| 2139                  |
++-----------------------+
+1 Row(s) produced. Time Elapsed: 0.139s
+
+
