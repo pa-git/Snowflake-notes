@@ -72,10 +72,12 @@ CREATE OR REPLACE TABLE TITANIC (
 -- A Virtual Warehouse is needed to load data and run queries;
 
 CREATE OR REPLACE WAREHOUSE SANDBOX_WH WITH
-                                   WAREHOUSE_SIZE = 'X-SMALL'
-                                   AUTO_SUSPEND = 180
-                                   AUTO_RESUME = TRUE
-                                   INITIALLY_SUSPENDED = TRUE;
+    WAREHOUSE_TYPE = 'STANDARD'
+    WAREHOUSE_SIZE = 'X-SMALL'
+    AUTO_SUSPEND = 180
+    AUTO_RESUME = TRUE
+    INITIALLY_SUSPENDED = TRUE;
+
 +--------------------------------------------+
 | status                                     |
 |--------------------------------------------|
