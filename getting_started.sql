@@ -47,19 +47,19 @@ SELECT CURRENT_DATABASE(), CURRENT_SCHEMA();
 -- I mostlhy use NUMBER for anything NUMERIC, VARCHAR for any TEXT, VARIANT for semi structured data such as JSON;
 
 CREATE OR REPLACE TABLE TITANIC (
-                                   PassengerId NUMBER,
-                                   Survived NUMBER,
-                                   Pclass NUMBER,
-                                   Name VARCHAR,
-                                   Sex VARCHAR,
-                                   Age NUMBER,
-                                   SibSp NUMBER,
-                                   Parch NUMBER,
-                                   Ticket VARCHAR,
-                                   Fare NUMBER(38,5),
-                                   Cabin VARCHAR,
-                                   Embarked VARCHAR
-                                   );
+  PassengerId NUMBER,
+  Survived NUMBER,
+  Pclass NUMBER,
+  Name VARCHAR,
+  Sex VARCHAR,
+  Age NUMBER,
+  SibSp NUMBER,
+  Parch NUMBER,
+  Ticket VARCHAR,
+  Fare NUMBER,
+  Cabin VARCHAR,
+  Embarked VARCHAR
+);
 +-------------------------------------+
 | status                              |
 |-------------------------------------|
@@ -104,7 +104,7 @@ PUT file://C:\Users\Public\Downloads\titanic.csv @~;
 1 Row(s) produced. Time Elapsed: 1.028s
 
 COPY INTO TITANIC FROM @~/titanic.csv
-                               FILE_FORMAT = (TYPE = csv FIELD_DELIMITER = "," FIELD_OPTIONALLY_ENCLOSED_BY = '"' SKIP_HEADER = 1);
+  FILE_FORMAT = (TYPE = csv FIELD_DELIMITER = "," FIELD_OPTIONALLY_ENCLOSED_BY = '"' SKIP_HEADER = 1);
 +----------------+--------+-------------+-------------+-------------+-------------+-------------+------------------+-----------------------+-------------------------+
 | file           | status | rows_parsed | rows_loaded | error_limit | errors_seen | first_error | first_error_line | first_error_character | first_error_column_name |
 |----------------+--------+-------------+-------------+-------------+-------------+-------------+------------------+-----------------------+-------------------------|
@@ -158,7 +158,7 @@ PUT file://C:\Users\Public\Downloads\titanic.csv @%TITANIC;
 1 Row(s) produced. Time Elapsed: 1.063s
 
 COPY INTO TITANIC FROM @%TITANIC/titanic.csv
-                               FILE_FORMAT = (TYPE = CSV FIELD_DELIMITER = "," FIELD_OPTIONALLY_ENCLOSED_BY = '"' SKIP_HEADER = 1);
+  FILE_FORMAT = (TYPE = CSV FIELD_DELIMITER = "," FIELD_OPTIONALLY_ENCLOSED_BY = '"' SKIP_HEADER = 1);
 +----------------+--------+-------------+-------------+-------------+-------------+-------------+------------------+-----------------------+-------------------------+
 | file           | status | rows_parsed | rows_loaded | error_limit | errors_seen | first_error | first_error_line | first_error_character | first_error_column_name |
 |----------------+--------+-------------+-------------+-------------+-------------+-------------+------------------+-----------------------+-------------------------|
@@ -205,10 +205,10 @@ SELECT * FROM TITANIC LIMIT 10;
 
 -- Create a file format;
 CREATE OR REPLACE FILE FORMAT MYCSVFORMAT
-                               TYPE = 'CSV'
-                               FIELD_DELIMITER = ','
-                               FIELD_OPTIONALLY_ENCLOSED_BY = '"'
-                               SKIP_HEADER = 1;
+  TYPE = 'CSV'
+  FIELD_DELIMITER = ','
+  FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+  SKIP_HEADER = 1;
 +-----------------------------------------------+
 | status                                        |
 |-----------------------------------------------|
@@ -243,11 +243,29 @@ PUT file://C:\Users\Public\Downloads\titanic.csv @MY_CSV_STAGE AUTO_COMPRESS = T
 +-------------+----------------+-------------+-------------+--------------------+--------------------+----------+---------+
 1 Row(s) produced. Time Elapsed: 1.455s
 
+-- Optional, you can query the file directly from the stage for debug for example
+SELECT $1, $2, $3, $4 FROM @MY_CSV_STAGE LIMIT 10;
++----+----+----+-----------------------------------------------------+
+| $1 | $2 | $3 | $4                                                  |
+|----+----+----+-----------------------------------------------------|
+| 1  | 0  | 3  | Braund, Mr. Owen Harris                             |
+| 2  | 1  | 1  | Cumings, Mrs. John Bradley (Florence Briggs Thayer) |
+| 3  | 1  | 3  | Heikkinen, Miss. Laina                              |
+| 4  | 1  | 1  | Futrelle, Mrs. Jacques Heath (Lily May Peel)        |
+| 5  | 0  | 3  | Allen, Mr. William Henry                            |
+| 6  | 0  | 3  | Moran, Mr. James                                    |
+| 7  | 0  | 1  | McCarthy, Mr. Timothy J                             |
+| 8  | 0  | 3  | Palsson, Master. Gosta Leonard                      |
+| 9  | 1  | 3  | Johnson, Mrs. Oscar W (Elisabeth Vilhelmina Berg)   |
+| 10 | 1  | 2  | Nasser, Mrs. Nicholas (Adele Achem)                 |
++----+----+----+-----------------------------------------------------+
+10 Row(s) produced. Time Elapsed: 1.102s
+
 -- Copy into the table;
 COPY INTO TITANIC
-                               FROM @MY_CSV_STAGE/titanic.csv
-                               FILE_FORMAT = (FORMAT_NAME = MYCSVFORMAT)
-                               ON_ERROR = 'SKIP_FILE';
+  FROM @MY_CSV_STAGE/titanic.csv
+  FILE_FORMAT = (FORMAT_NAME = MYCSVFORMAT)
+  ON_ERROR = 'SKIP_FILE';
 +-----------------------------+--------+-------------+-------------+-------------+-------------+-------------+------------------+-----------------------+-------------------------+
 | file                        | status | rows_parsed | rows_loaded | error_limit | errors_seen | first_error | first_error_line | first_error_character | first_error_column_name |
 |-----------------------------+--------+-------------+-------------+-------------+-------------+-------------+------------------+-----------------------+-------------------------|
@@ -271,3 +289,28 @@ SELECT * FROM TITANIC LIMIT 10;
 |           9 |        1 |      3 | Johnson, Mrs. Oscar W (Elisabeth Vilhelmina Berg)   | female |  27 |     0 |     2 | 347742           | 11.13330 | NULL  | S        |
 |          10 |        1 |      2 | Nasser, Mrs. Nicholas (Adele Achem)                 | female |  14 |     1 |     0 | 237736           | 30.07080 | NULL  | C        |
 +-------------+----------+--------+-----------------------------------------------------+--------+-----+-------+-------+------------------+----------+-------+----------+
+
+-- Optionally, clean up the named stage
+----------------------------------------
+-- Internal stage has storage cost
+
+-- List files in the stage
+LIST @MY_CSV_STAGE;
++-----------------------------+-------+----------------------------------+-------------------------------+
+| name                        |  size | md5                              | last_modified                 |
+|-----------------------------+-------+----------------------------------+-------------------------------|
+| my_csv_stage/titanic.csv.gz | 21584 | 68ce8ef3db69bf655bd8816dc5113574 | Tue, 25 Oct 2022 14:45:20 GMT |
++-----------------------------+-------+----------------------------------+-------------------------------+
+1 Row(s) produced. Time Elapsed: 0.441s
+
+-- Delete the files no longer needed
+REMOVE @MY_CSV_STAGE PATTERN = '.*[titanic.csv.gz]';
++-----------------------------+---------+
+| name                        | result  |
+|-----------------------------+---------|
+| my_csv_stage/titanic.csv.gz | removed |
++-----------------------------+---------+
+1 Row(s) produced. Time Elapsed: 0.189s
+
+
+
