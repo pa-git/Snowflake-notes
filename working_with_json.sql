@@ -52,22 +52,24 @@ Query the data
 -- It's very important to understand the structure of the json data
 -- See json_sample.json file to understand the structure
 
--- Select the id of the first element in "feeds"                               
-SELECT JSON_DATA:feeds[0].id FROM MY_JSON_TABLE;
-+-----------------------+
-| JSON_DATA:FEEDS[0].ID |
-|-----------------------|
-| 2140                  |
-+-----------------------+
-1 Row(s) produced. Time Elapsed: 0.173s
+-- Select the id of the first element in "feeds"         
+-- NB: Property names are case sensitive
 
--- Select the id of the second element in "feeds"
-SELECT JSON_DATA:feeds[1].id FROM MY_JSON_TABLE;
-+-----------------------+
-| JSON_DATA:FEEDS[1].ID |
-|-----------------------|
-| 2139                  |
-+-----------------------+
-1 Row(s) produced. Time Elapsed: 0.139s
+SELECT
+  JSON_DATA:feeds[0].id::NUMBER,
+  JSON_DATA:feeds[0].location::STRING,
+  JSON_DATA:feeds[0].profilePicture::STRING,
+  JSON_DATA:feeds[0].multiMedia[0].url::STRING
+FROM MY_JSON_TABLE;
++-------------------------------+-----------------------------------------+-------------------------------------------------+----------------------------------------------+
+| JSON_DATA:FEEDS[0].ID::NUMBER | JSON_DATA:FEEDS[0].LOCATION::STRING     | JSON_DATA:FEEDS[0].PROFILEPICTURE::STRING       | JSON_DATA:FEEDS[0].MULTIMEDIA[0].URL::STRING |
+|-------------------------------+-----------------------------------------+-------------------------------------------------+----------------------------------------------|
+|                          2140 | Hermannplatz 5-6, 10967 Berlin, Germany | Images/9b291404-bc2e-4806-88c5-08d29e65a5ad.png | http://www.youtube.com/embed/mPhboJR0Llc     |
++-------------------------------+-----------------------------------------+-------------------------------------------------+----------------------------------------------+
+1 Row(s) produced. Time Elapsed: 1.149s
+
+-- This only allows to query one element at a time using its position
+-- Use the FLATTEN function to convert JSON data into a tabular view
+
 
 
