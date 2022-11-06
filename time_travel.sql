@@ -171,4 +171,13 @@ SELECT * FROM TITANIC LIMIT 5;
 +-------------+----------+--------+-----------------------------------------------------+--------+-----+-------+-------+------------------+----------+-------+----------+
 5 Row(s) produced. Time Elapsed: 0.132s
 
+-- Create a table copy of what it was before ( ex. for debug)
+CREATE OR REPLACE TABLE TITANIC_BEFORE
+CLONE TITANIC BEFORE ( STATEMENT => '01a820da-0000-7442-0001-83ba0002a0e6' );
++--------------------------------------------+
+| status                                     |
+|--------------------------------------------|
+| Table TITANIC_BEFORE successfully created. |
++--------------------------------------------+
+1 Row(s) produced. Time Elapsed: 0.901s
 
