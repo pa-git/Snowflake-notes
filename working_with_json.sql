@@ -71,5 +71,33 @@ FROM MY_JSON_TABLE;
 -- This only allows to query one element at a time using its position
 -- Use the FLATTEN function to convert JSON data into a tabular view
 
+CREATE OR REPLACE TABLE MY_JSON_TABLE_FLAT AS
+SELECT
+   a0.VALUE:id::NUMBER as ID,
+   a0.VALUE:location::STRING as LOCATION,
+   a0.VALUE:profilePicture::STRING as PICTURE,
+   a1.VALUE:url::STRING as URL
+FROM
+   MY_JSON_TABLE
+   , LATERAL FLATTEN ( INPUT => JSON_DATA:feeds ) as a0
+   , LATERAL FLATTEN ( INPUT => a0.VALUE:multiMedia) as a1;
++------------------------------------------------+
+| status                                         |
+|------------------------------------------------|
+| Table MY_JSON_TABLE_FLAT successfully created. |
++------------------------------------------------+
+1 Row(s) produced. Time Elapsed: 2.957s
 
+-- Now you can query the data normally
+SELECT * FROM MY_JSON_TABLE_FLAT LIMIT 5;
++------+--------------------------------------------------------------------------------+-------------------------------------------------+---------------------------------------------+
+|   ID | LOCATION                                                                       | PICTURE                                         | URL                                         |
+|------+--------------------------------------------------------------------------------+-------------------------------------------------+---------------------------------------------|
+| 2140 | Hermannplatz 5-6, 10967 Berlin, Germany                                        | Images/9b291404-bc2e-4806-88c5-08d29e65a5ad.png | http://www.youtube.com/embed/mPhboJR0Llc    |
+| 2139 | 443 N Rodeo Dr, Beverly Hills, CA 90210, USA                                   | Images/9b291404-bc2e-4806-88c5-08d29e65a5ad.png | http://www.youtube.com/embed/RtFcZ6Bwolw    |
+| 2138 | IFFCO Chowk Flyover, Heritage City, Sector 29, Gurugram, Haryana 122001, India | Images/9b291404-bc2e-4806-88c5-08d29e65a5ad.png | http://www.youtube.com/embed/TUT2-FEPMdc    |
+| 2137 | 2001 NV-582, Las Vegas, NV 89101, USA                                          | Images/9b291404-bc2e-4806-88c5-08d29e65a5ad.png | https://www.youtube.com/watch?v=Kg8VraUgpR4 |
+| 2136 | 103 B100, Anglesea VIC 3230, Australia                                         | Images/9b291404-bc2e-4806-88c5-08d29e65a5ad.png | https://www.youtube.com/watch?v=WgmgSwkTUEM |
++------+--------------------------------------------------------------------------------+-------------------------------------------------+---------------------------------------------+
+5 Row(s) produced. Time Elapsed: 0.573s
 
