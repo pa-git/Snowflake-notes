@@ -83,4 +83,10 @@ GRANT SELECT ON TABLE SHARING_DEMO.PUBLIC.SHARING_TITANIC TO SHARE SHARE_TITANIC
 -- Add the consumer account to the share
 ALTER SHARE SHARE_TITANIC ADD ACCOUNT = < CONSUMER_ACCOUNT >
 
+-- Consumer account does not have quotes. Ex:
+ALTER SHARE SHARE_TITANIC ADD ACCOUNT = fo98660;
+
 -- The consumer account will now have access to the share
+-- The consumer account needs to create a Database from the share as follows
+-- This Database will be Read only
+CREATE DATABASE CONSUMING_TITANIC from share < PROVIDER_ACCOUNT >.SHARE_TITANIC;
