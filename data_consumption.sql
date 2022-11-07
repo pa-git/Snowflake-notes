@@ -1,0 +1,21 @@
+-- Truncate and load test
+-- Create the table
+CREATE OR REPLACE TABLE titanic AS
+SELECT * FROM titanic_before;
+
+-- Truncate it
+TRUNCATE titanic;
+
+-- Load the exact same data again
+INSERT INTO titanic
+SELECT * FROM titanic_before;
+
+-- See the files
+SELECT T.*,TSM.* 
+FROM INFORMATION_SCHEMA.TABLES T
+INNER JOIN INFORMATION_SCHEMA.TABLE_STORAGE_METRICS TSM
+ON T.TABLE_CATALOG=TSM.TABLE_CATALOG
+AND T.TABLE_SCHEMA=TSM.TABLE_SCHEMA
+AND T.TABLE_NAME=TSM.TABLE_NAME
+WHERE T.TABLE_NAME = 'TITANIC'
+;
