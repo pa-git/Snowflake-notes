@@ -9,9 +9,9 @@
 
 -- Discretionary Access Control (DAC)
 
--- Dynamic Data Masking (Column level)
+-- Column Level Security: Dynamic Data Masking
 
--- Row level security
+-- Row Level Security
 
 -- Secure views
 
