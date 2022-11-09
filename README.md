@@ -1,3 +1,3 @@
 # Snowflake notes
 
-A collection of notes to jump start your Snowflake journey
+A collection of notes tp pass the SnowPro-Core Certification
