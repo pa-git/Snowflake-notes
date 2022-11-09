@@ -1,3 +1,3 @@
 # Snowflake notes
 
-A collection of notes tp pass the SnowPro-Core Certification
+A collection of notes to prepare for SnowPro Certifications
