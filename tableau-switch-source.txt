@@ -1,0 +1,7 @@
+To change a data source in Tableau Desktop while keeping everything else the same, follow these steps:
+
+Right-click the data source in the Data pane and select "Replace Data Source."
+In the "Replace Data Source" dialog box, select the new data source you want to use and click "Open."
+Tableau will prompt you to confirm whether you want to replace the existing data source or create a copy. Select "Replace" to replace the existing data source with the new one.
+All your workbooks, worksheets, and dashboards that use the previous data source will now use the new data source. The fields, calculations, and visualizations in your workbook will remain intact.
+Note: If you have created calculated fields or calculated dimensions in your workbook that use specific fields from the previous data source, they may not work with the new data source if the fields don't match. You will need to update these calculations to use fields from the new data source.
