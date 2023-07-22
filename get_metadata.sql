@@ -71,3 +71,31 @@ $$
 
   return JSON.stringify(result);
 $$;
+
+
+DECLARE
+    table_name STRING DEFAULT 'your_table_name';
+    columns ARRAY;
+    result OBJECT;
+BEGIN
+    columns := ARRAY_CONSTRUCT();
+    result := OBJECT_INSERT(OBJECT_INSERT(NULL, 'table_name', table_name), 'columns', result);
+
+    FOR row IN 
+        SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_NAME = table_name
+    LOOP
+        result['columns'] := OBJECT_INSERT(result['columns'], row.COLUMN_NAME, OBJECT_INSERT(NULL, 'data_type', row.DATA_TYPE));
+        result['columns'][row.COLUMN_NAME] := OBJECT_INSERT(result['columns'][row.COLUMN_NAME], 'size', row.CHARACTER_MAXIMUM_LENGTH);
+
+        EXECUTE IMMEDIATE USING :row.COLUMN_NAME, :table_name INTO result['columns'][row.COLUMN_NAME]['sample_values'] 
+        $$ 
+        SELECT ARRAY_CONCAT_AGG($COLUMN_NAME) 
+        FROM (SELECT $COLUMN_NAME FROM IDENTIFIER($TABLE_NAME) LIMIT 10);
+        $$;
+    END LOOP;
+
+    RETURN result;
+END;
+
