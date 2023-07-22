@@ -99,3 +99,37 @@ BEGIN
     RETURN result;
 END;
 
+
+DECLARE
+    table_name STRING DEFAULT 'your_table_name';
+    column_names ARRAY;
+    data_types ARRAY;
+    sizes ARRAY;
+    sample_values ARRAY;
+
+BEGIN
+    column_names := ARRAY_CONSTRUCT();
+    data_types := ARRAY_CONSTRUCT();
+    sizes := ARRAY_CONSTRUCT();
+    sample_values := ARRAY_CONSTRUCT();
+
+    FOR row IN 
+        SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_NAME = table_name
+    LOOP
+        column_names := ARRAY_INSERT(column_names, ARRAY_SIZE(column_names), row.COLUMN_NAME);
+        data_types := ARRAY_INSERT(data_types, ARRAY_SIZE(data_types), row.DATA_TYPE);
+        sizes := ARRAY_INSERT(sizes, ARRAY_SIZE(sizes), row.CHARACTER_MAXIMUM_LENGTH);
+
+        EXECUTE IMMEDIATE USING :row.COLUMN_NAME, :table_name INTO sample_values[ARRAY_SIZE(sample_values)]
+        $$ 
+        SELECT ARRAY_CONCAT_AGG($COLUMN_NAME) 
+        FROM (SELECT $COLUMN_NAME FROM IDENTIFIER($TABLE_NAME) LIMIT 10);
+        $$;
+    END LOOP;
+
+    RETURN TO_VARIANT(CONCAT('Table Name: ', table_name, ', Column Names: ', ARRAY_TO_STRING(column_names, ', '), ', Data Types: ', ARRAY_TO_STRING(data_types, ', '), ', Sizes: ', ARRAY_TO_STRING(sizes, ', '), ', Sample Values: ', ARRAY_TO_STRING(sample_values, ', ')));
+END;
+
+
