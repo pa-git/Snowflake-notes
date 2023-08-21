@@ -1,0 +1,13 @@
+import re
+
+def extract_content(input_text):
+    pattern = r'\^\|\^\|\^\|(.+?)\^\|\^\|\^\|'
+    matches = re.findall(pattern, input_text)
+    return matches
+
+input_text = "^|^|^|^foo bar ^|^|^|^"
+result = extract_content(input_text)
+if result:
+    print(result[0])  # This will print "foo bar"
+else:
+    print("No match found")
