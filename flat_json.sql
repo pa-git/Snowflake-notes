@@ -19,3 +19,13 @@ FROM your_table,
     LATERAL FLATTEN(input => json_data:columns) f,
     LATERAL FLATTEN(input => json_data:row_count_test) r
 WHERE f.value IS NOT NULL AND r.value IS NOT NULL;
+
+
+SELECT
+    f.value:column_name::STRING as column_name
+FROM your_table,
+    LATERAL FLATTEN(input => json_data:columns) f
+WHERE 
+    f.value:has_duplicates_test.Message::STRING = 'Test Failed'
+    OR f.value:null_values_percentage_test.Message::STRING = 'Test Failed'
+    OR f.value:sum_total_test.Message::STRING = 'Test Failed';
