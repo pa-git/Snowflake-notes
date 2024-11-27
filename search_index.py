@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 import faiss
 import joblib
@@ -11,7 +10,7 @@ def generate_ngrams(string, n=3):
 # Load the saved index, vectorizer, and data
 index = faiss.read_index("faiss_index.bin")
 vectorizer = joblib.load("vectorizer.pkl")
-df = pd.read_csv("data.csv")
+df = pd.read_csv("data.csv")  # Load the original CSV file
 
 # Function to search for top matches
 def search_faiss(query, vectorizer, index, df, top_n=5):
