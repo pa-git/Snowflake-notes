@@ -1,74 +1,108 @@
-import os
+# config.py
 
-# Base directory for all output files
-BASE_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "extracted_values")
+BASE_DIRECTORY = "./data/"
 
-# Ensure the base output directory exists
-os.makedirs(BASE_OUTPUT_DIR, exist_ok=True)
-
-# Mapping of cubes to their specific output directories and dimensions
-CUBE_CONFIG = {
+CONFIG = {
     "Management Reporting": {
-        "output_dir": os.path.join(BASE_OUTPUT_DIR, "management_reporting"),
-        "dimensions": ["Account", "Region", "Product"],
+        "sub_directory": "management_reporting/",
+        "jsonl_files": ["file1.jsonl", "file2.jsonl"],
+        "dimension_key": "dimension_name",
+        "value_keys": ["value1", "value2"]
     },
-    "Sales Analysis": {
-        "output_dir": os.path.join(BASE_OUTPUT_DIR, "sales_analysis"),
-        "dimensions": ["Customer", "Salesperson", "Product"],
-    },
-    "Inventory Management": {
-        "output_dir": os.path.join(BASE_OUTPUT_DIR, "inventory_management"),
-        "dimensions": ["Warehouse", "Product", "Category"],
-    },
+    "Sales Reporting": {
+        "sub_directory": "sales_reporting/",
+        "jsonl_files": ["sales_data.jsonl"],
+        "dimension_key": "sales_dimension",
+        "value_keys": ["amount", "currency"]
+    }
 }
 
-# Ensure all cube-specific output directories exist
-for cube in CUBE_CONFIG.values():
-    os.makedirs(cube["output_dir"], exist_ok=True)
+# utils.py
 
+import os
+import jsonlines
+import pandas as pd
 
-
-
--------------------
-
-from finpyalpyn.server.config import ServerConfig, Environment, Instance
-from TM1py import TM1Service
-from data_extraction.utils import process_dimension
-from data_extraction.config import CUBE_CONFIG
-
-
-def extract_data(environment: Environment, instance: Instance, cube_name: str):
+def load_jsonl_file(filepath):
     """
-    Extract data from a specified cube in TM1 and write dimension data to JSONL files.
+    Loads a JSONL file and returns a list of JSON objects.
+    """
+    data = []
+    with jsonlines.open(filepath) as reader:
+        for obj in reader:
+            data.append(obj)
+    return data
+
+def deduplicate_dataframe(df):
+    """
+    Deduplicates a pandas DataFrame.
+    """
+    return df.drop_duplicates()
+
+# clean_and_filter.py
+
+import os
+import pandas as pd
+from config import CONFIG, BASE_DIRECTORY
+from utils import load_jsonl_file, deduplicate_dataframe
+
+def process_jsonl_files(area):
+    """
+    Processes JSONL files for the specified business area and returns a DataFrame.
 
     Args:
-        environment (Environment): The TM1 environment to connect to.
-        instance (Instance): The TM1 instance to use.
-        cube_name (str): The name of the cube to extract data from.
+        area (str): The business area to process (e.g., "Management Reporting").
+
+    Returns:
+        pandas.DataFrame: A DataFrame with two columns: Dimension and Value.
     """
-    cube_config = CUBE_CONFIG.get(cube_name)
+    # Load configuration for the area
+    if area not in CONFIG:
+        raise ValueError(f"Area '{area}' not found in configuration.")
 
-    if not cube_config:
-        raise ValueError(f"No configuration found for the cube: {cube_name}")
+    area_config = CONFIG[area]
+    sub_directory = area_config["sub_directory"]
+    directory = os.path.join(BASE_DIRECTORY, sub_directory)
+    jsonl_files = area_config["jsonl_files"]
+    dimension_key = area_config["dimension_key"]
+    value_keys = area_config["value_keys"]
 
-    dimensions_to_process = cube_config["dimensions"]
-    output_dir = cube_config["output_dir"]
+    # Initialize an empty list to hold the processed rows
+    rows = []
 
-    with TM1Service(**ServerConfig.get_config(environment, instance)) as tm1:
-        cube = tm1.cubes.get(cube_name)
-        cube_dimensions = cube.dimensions
+    # Process each file in the directory
+    for jsonl_file in jsonl_files:
+        filepath = os.path.join(directory, jsonl_file)
 
-        # Process only the dimensions specified for this cube
-        for dimension_name in cube_dimensions:
-            if dimension_name in dimensions_to_process:
-                output_file = f"{output_dir}/{dimension_name}.jsonl"
-                process_dimension(tm1, dimension_name, cube_name, output_file)
+        if not os.path.exists(filepath):
+            print(f"File not found: {filepath}")
+            continue
 
+        # Load the JSONL file
+        data = load_jsonl_file(filepath)
+
+        # Extract dimensions and values from each JSON object
+        for record in data:
+            dimension = record.get(dimension_key)
+            if not dimension:
+                continue
+
+            for value_key in value_keys:
+                value = record.get(value_key)
+                if value:
+                    rows.append({"Dimension": dimension, "Value": value})
+
+    # Convert the rows to a pandas DataFrame
+    df = pd.DataFrame(rows)
+
+    # Deduplicate the DataFrame
+    df = deduplicate_dataframe(df)
+
+    return df
 
 if __name__ == "__main__":
     # Example usage
-    extract_data(Environment.DEV, Instance.FINANCE, 'Management Reporting')
-
-
-
-
+    area = "Management Reporting"  # Change as needed
+    df = process_jsonl_files(area)
+    df.to_csv("output.csv", index=False)
+    print("DataFrame saved as output.csv")
