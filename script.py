@@ -10,7 +10,7 @@ CONFIG = {
     }
 }
 
-
+"output_index_path": os.path.join("indices", "management_reporting_faiss_index.bin")
 
 
 import os
