@@ -1,16 +1,19 @@
+# config.py
+
+import os
+
 CONFIG = {
-    "model_location": "/v/region/na/appl/it/itgetl/data/dev/auto_generate_catalog/sentence-transformers/msmarco-MiniLM-L6-cos-v5",
+    "model_location": os.path.join(os.getenv("HOME", ""), "model-store", "sentence-transformers", "msmarco-MiniLM-L6-cos-v5"),
     "areas": {
         "Management Reporting": {
-            "output_index_path": "management_reporting_faiss_index.bin"
+            "output_index_path": os.path.join("indices", "management_reporting_faiss_index.bin")
         },
         "Sales Reporting": {
-            "output_index_path": "sales_reporting_faiss_index.bin"
+            "output_index_path": os.path.join("indices", "sales_reporting_faiss_index.bin")
         }
     }
 }
 
-"output_index_path": os.path.join("indices", "management_reporting_faiss_index.bin")
 
 
 import os
