@@ -1,0 +1,97 @@
+# config.py
+
+import os
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+
+# Path to your private key file (in PEM or p8 format).
+PRIVATE_KEY_PATH = "/path/to/your_private_key.p8"
+
+# If your private key is password-protected, store/pass the passphrase securely.
+# For example, you might keep the passphrase in an environment variable:
+PRIVATE_KEY_PASSPHRASE = os.getenv("SNOWFLAKE_PRIVATE_KEY_PASSPHRASE", "")
+
+def load_private_key():
+    """
+    Loads and returns a private key object using Python's 'cryptography' library.
+    Adjust as needed for your key format or passphrase.
+    """
+    with open(PRIVATE_KEY_PATH, "rb") as key_file:
+        private_key_obj = serialization.load_pem_private_key(
+            key_file.read(),
+            password=PRIVATE_KEY_PASSPHRASE.encode() if PRIVATE_KEY_PASSPHRASE else None,
+            backend=default_backend()
+        )
+    return private_key_obj
+
+SNOWFLAKE_CONNECTION = {
+    "user": "YOUR_SNOWFLAKE_USERNAME",
+    "account": "YOUR_SNOWFLAKE_ACCOUNT",      # e.g. "xy12345.us-east-1"
+    # "warehouse": "YOUR_SNOWFLAKE_WAREHOUSE",
+    # "database": "YOUR_DATABASE",
+    # "schema": "YOUR_SCHEMA",
+    # "role": "YOUR_ROLE",
+    #
+    # Instead of a password, we'll pass in the private key object:
+    "private_key": load_private_key()
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# run_snowflake_query.py
+
+import snowflake.connector
+import config
+
+def run_snowflake_query():
+    # Establish a connection using the dictionary from config.py
+    conn = snowflake.connector.connect(**config.SNOWFLAKE_CONNECTION)
+    
+    try:
+        # Create a cursor
+        cur = conn.cursor()
+
+        # Read the entire SQL file
+        with open('saccr_query.sql', 'r') as file:
+            sql_script = file.read()
+
+        # Execute the query
+        cur.execute(sql_script)
+
+        # If the script has a SELECT statement, fetch the results
+        results = cur.fetchall()
+        for row in results:
+            print(row)
+
+    finally:
+        cur.close()
+        conn.close()
+
+if __name__ == "__main__":
+    run_snowflake_query()
+
+
+
+
+
+
+
+
+
+
+
+
