@@ -4,12 +4,46 @@ import openai
 
 from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 
-# Set your OpenAI API key. Either use the OPENAI_API_KEY environment variable
-# or replace "YOUR_API_KEY" with your actual key.
+# Set your OpenAI API key
 openai.api_key = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
+
+# ------------------------------------------------------------------
+# Custom Embedding Function
+# ------------------------------------------------------------------
+def open_ai_embed(inputs):
+    """
+    Calls the OpenAI Embedding API for a list of input strings.
+    
+    Args:
+        inputs (List[str]): A list of strings to embed.
+    
+    Returns:
+        List[List[float]]: A list of embedding vectors.
+    """
+    response = openai.Embedding.create(
+        model="text-embedding-ada-002",
+        input=inputs
+    )
+    embeddings = [item["embedding"] for item in response["data"]]
+    return embeddings
+
+# ------------------------------------------------------------------
+# Custom Embeddings Class Wrapping open_ai_embed
+# ------------------------------------------------------------------
+class CustomOpenAIEmbeddings:
+    def embed_documents(self, texts):
+        """
+        Embed a list of documents.
+        """
+        return open_ai_embed(texts)
+    
+    def embed_query(self, text):
+        """
+        Embed a single query string.
+        """
+        return open_ai_embed([text])[0]
 
 # ------------------------------------------------------------------
 # System Message (kept separate from the prompt template)
@@ -64,11 +98,17 @@ def build_prompt(theme, theme_description, theme_focus, chunks_text):
 # ------------------------------------------------------------------
 def get_relevant_chunks(pdf_path, query, k=20):
     """
-    Loads a PDF, splits it into chunks using a recursive text splitter, indexes the chunks
-    in a ChromaDB vector store with OpenAI embeddings, and then retrieves the top-k chunks
-    most relevant to the provided query.
+    Loads a PDF, splits it into chunks using a recursive text splitter,
+    indexes the chunks in a ChromaDB vector store using custom embeddings,
+    and retrieves the top-k chunks most relevant to the provided query.
     
-    Returns a string with the retrieved chunks formatted for the prompt.
+    Args:
+        pdf_path (str): Path to the PDF document.
+        query (str): The query text (typically the theme description) to retrieve relevant chunks.
+        k (int): Number of top chunks to retrieve.
+    
+    Returns:
+        str: A formatted string containing the retrieved chunks.
     """
     # Load the PDF using LangChain's PyPDFLoader.
     loader = PyPDFLoader(pdf_path)
@@ -78,13 +118,11 @@ def get_relevant_chunks(pdf_path, query, k=20):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     split_docs = text_splitter.split_documents(documents)
 
-    # Create embeddings using OpenAIEmbeddings.
-    embeddings = OpenAIEmbeddings()
-
-    # Create (or load) a ChromaDB index from the chunks.
+    # Create a ChromaDB index using our custom embeddings.
+    custom_embeddings = CustomOpenAIEmbeddings()
     vectorstore = Chroma.from_documents(
         split_docs,
-        embeddings,
+        custom_embeddings,
         collection_name="investors_call",
         persist_directory="chroma_db"
     )
