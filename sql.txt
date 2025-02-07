@@ -1,10 +1,5 @@
-from sqlglot import expressions as exp
-
-# Corrected WHERE clause
-ast.where(
-    *[
-        exp.EQ(this=col, expression=exp.Literal.string(val) if isinstance(val, str) else exp.Literal.number(val))
-        for col, val in qdsl.dsl['where'].items()
-    ],
-    copy=False
+# Fix the column references in SELECT
+ast = sqlglot.select(
+    *[exp.column(dim) for dim in qdsl.dsl['dimensions'].values()],
+    *[exp.column(meas) for meas in qdsl.dsl['measures'].values()]
 )
