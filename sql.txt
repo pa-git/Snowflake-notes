@@ -1,5 +1,10 @@
+from sqlglot import expressions as exp
+
 # Corrected WHERE clause
 ast.where(
-    *[exp.EQ(this=col, expression=val) for col, val in qdsl.dsl['where'].items()],
+    *[
+        exp.EQ(this=col, expression=exp.Literal.string(val) if isinstance(val, str) else exp.Literal.number(val))
+        for col, val in qdsl.dsl['where'].items()
+    ],
     copy=False
 )
