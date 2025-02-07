@@ -1,0 +1,5 @@
+# Corrected WHERE clause
+ast.where(
+    *[exp.EQ(this=col, expression=val) for col, val in qdsl.dsl['where'].items()],
+    copy=False
+)
