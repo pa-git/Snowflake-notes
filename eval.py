@@ -1,8 +1,8 @@
 import sqlite3
 import json
-from sentence_transformers import SentenceTransformer, util
-import torch
-import sys
+import numpy as np
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
 
 DB_PATH = "quotes.db"
 
@@ -93,7 +93,7 @@ def save_generated_quotes(generated_quotes, db_path=DB_PATH):
     conn.close()
     print("[INFO] Generated quotes have been saved.")
 
-# --- Function 2: Compare quotes using Sentence Transformers ---
+# --- Function 2: Compare quotes using Sentence Transformers (without torch) ---
 def compare_quotes(file, theme, match_threshold=95, db_path=DB_PATH):
     print(f"[INFO] Starting comparison for file: '{file}', theme: '{theme}'...")
     create_comparison_results_table(db_path)
@@ -119,7 +119,7 @@ def compare_quotes(file, theme, match_threshold=95, db_path=DB_PATH):
         print(f"[WARN] No expected quotes (eval=1) found for file '{file}' and theme '{theme}'. Exiting comparison.")
         return
 
-    # Extract text for computing embeddings
+    # Extract the text for computing embeddings
     generated_quotes_text = [row[2] for row in generated_rows]  # Quote is the 3rd column
     expected_quotes_text = [row[0] for row in expected_rows]
 
@@ -127,16 +127,18 @@ def compare_quotes(file, theme, match_threshold=95, db_path=DB_PATH):
     model = SentenceTransformer('all-MiniLM-L6-v2')
     
     print("[INFO] Generating embeddings for generated quotes...")
-    generated_embeddings = model.encode(generated_quotes_text, convert_to_tensor=True)
+    generated_embeddings = model.encode(generated_quotes_text, convert_to_tensor=False)
     
     print("[INFO] Generating embeddings for expected quotes...")
-    expected_embeddings = model.encode(expected_quotes_text, convert_to_tensor=True)
+    expected_embeddings = model.encode(expected_quotes_text, convert_to_tensor=False)
 
-    print("[INFO] Computing cosine similarities...")
-    cosine_scores = util.cos_sim(generated_embeddings, expected_embeddings)
+    print("[INFO] Computing cosine similarities using sklearn...")
+    # Compute cosine similarity between each generated quote and each expected quote.
+    # This returns a 2D array of shape (num_generated, num_expected)
+    cosine_scores = cosine_similarity(generated_embeddings, expected_embeddings)
     
     # For each generated quote, get the highest similarity score
-    max_similarities = torch.max(cosine_scores, dim=1).values  # tensor of shape (num_generated,)
+    max_similarities = np.max(cosine_scores, axis=1)  # array of shape (num_generated,)
     max_similarities_percentage = (max_similarities * 100).tolist()
 
     print("[INFO] Saving comparison results to DB...")
@@ -204,13 +206,13 @@ def evaluate_results(file, theme, prompts, match_threshold=95, db_path=DB_PATH):
         print("[INFO] Reloading model for recall evaluation...")
         model = SentenceTransformer('all-MiniLM-L6-v2')
         print("[INFO] Generating embeddings for expected quotes (recall)...")
-        expected_embeddings = model.encode(expected_quotes_text, convert_to_tensor=True)
+        expected_embeddings = model.encode(expected_quotes_text, convert_to_tensor=False)
         print("[INFO] Generating embeddings for all generated quotes (recall)...")
-        generated_embeddings = model.encode(generated_quotes_text, convert_to_tensor=True)
+        generated_embeddings = model.encode(generated_quotes_text, convert_to_tensor=False)
         
-        print("[INFO] Computing cosine similarities for recall...")
-        cosine_scores = util.cos_sim(expected_embeddings, generated_embeddings)
-        max_similarities_expected = torch.max(cosine_scores, dim=1).values
+        print("[INFO] Computing cosine similarities for recall using sklearn...")
+        cosine_scores = cosine_similarity(expected_embeddings, generated_embeddings)
+        max_similarities_expected = np.max(cosine_scores, axis=1)
         max_similarities_expected_percentage = (max_similarities_expected * 100).tolist()
         count_expected_matched = sum(1 for score in max_similarities_expected_percentage if score >= match_threshold)
         total_expected = len(expected_quotes_text)
