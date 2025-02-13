@@ -2,12 +2,13 @@ import sqlite3
 import json
 from sentence_transformers import SentenceTransformer, util
 import torch
+import sys
 
 DB_PATH = "quotes.db"
 
-
 # --- Helper functions to create tables ---
 def create_generated_quotes_table(db_path=DB_PATH):
+    print("[INFO] Creating 'generated_quotes' table if it doesn't exist...")
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute('''
@@ -25,9 +26,10 @@ def create_generated_quotes_table(db_path=DB_PATH):
     ''')
     conn.commit()
     conn.close()
-
+    print("[INFO] 'generated_quotes' table ready.")
 
 def create_comparison_results_table(db_path=DB_PATH):
+    print("[INFO] Creating 'comparison_results' table if it doesn't exist...")
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute('''
@@ -45,9 +47,10 @@ def create_comparison_results_table(db_path=DB_PATH):
     ''')
     conn.commit()
     conn.close()
-
+    print("[INFO] 'comparison_results' table ready.")
 
 def create_evaluation_results_table(db_path=DB_PATH):
+    print("[INFO] Creating 'evaluation_results' table if it doesn't exist...")
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute('''
@@ -63,15 +66,11 @@ def create_evaluation_results_table(db_path=DB_PATH):
     ''')
     conn.commit()
     conn.close()
-
+    print("[INFO] 'evaluation_results' table ready.")
 
 # --- Function 1: Save the generated_quotes JSON into SQLite ---
 def save_generated_quotes(generated_quotes, db_path=DB_PATH):
-    """
-    Saves the JSON object into the `generated_quotes` table.
-    The JSON object is expected to have keys: file, theme, prompts, quotes.
-    Each quote is saved with its order (starting at 1) and an eval defaulting to 0.
-    """
+    print("[INFO] Saving generated quotes to database...")
     create_generated_quotes_table(db_path)
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
@@ -84,7 +83,7 @@ def save_generated_quotes(generated_quotes, db_path=DB_PATH):
         quote_text = quote.get("Quote")
         relevance = quote.get("Relevance")
         reasoning = quote.get("Reasoning")
-        # Insert each quote with eval defaulting to 0
+        print(f"[DEBUG] Inserting quote order {i}: {quote_text[:50]}...")
         c.execute('''
             INSERT INTO generated_quotes (file, theme, "order", Speaker, Quote, Relevance, Reasoning, eval)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -92,33 +91,23 @@ def save_generated_quotes(generated_quotes, db_path=DB_PATH):
     
     conn.commit()
     conn.close()
-
+    print("[INFO] Generated quotes have been saved.")
 
 # --- Function 2: Compare quotes using Sentence Transformers ---
 def compare_quotes(file, theme, match_threshold=95, db_path=DB_PATH):
-    """
-    For the given file and theme, this function:
-      1. Retrieves the generated quotes (all rows) and the expected quotes (rows with eval = 1)
-      2. Computes cosine similarity between each generated quote and all expected quotes.
-      3. For each generated quote, saves the highest similarity (multiplied by 100) as eval_match.
-         (A perfect match would give eval_match=100.)
-      4. Saves the results into the `comparison_results` table.
-    
-    The parameter match_threshold is not used in the computation here but can be later used to compute
-    precision and recall.
-    """
+    print(f"[INFO] Starting comparison for file: '{file}', theme: '{theme}'...")
     create_comparison_results_table(db_path)
     
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
-    # Retrieve all generated quotes for the file and theme
+    print("[DEBUG] Retrieving generated quotes from DB...")
     c.execute('''
         SELECT "order", Speaker, Quote, Relevance, Reasoning FROM generated_quotes
         WHERE file = ? AND theme = ?
     ''', (file, theme))
     generated_rows = c.fetchall()
     
-    # Retrieve expected quotes (eval=1)
+    print("[DEBUG] Retrieving expected quotes (eval=1) from DB...")
     c.execute('''
         SELECT Quote FROM generated_quotes
         WHERE file = ? AND theme = ? AND eval = 1
@@ -127,56 +116,52 @@ def compare_quotes(file, theme, match_threshold=95, db_path=DB_PATH):
     conn.close()
 
     if not expected_rows:
-        print(f"[compare_quotes] No expected quotes (eval=1) found for file '{file}' and theme '{theme}'.")
+        print(f"[WARN] No expected quotes (eval=1) found for file '{file}' and theme '{theme}'. Exiting comparison.")
         return
 
-    # Extract just the text for computing embeddings
+    # Extract text for computing embeddings
     generated_quotes_text = [row[2] for row in generated_rows]  # Quote is the 3rd column
     expected_quotes_text = [row[0] for row in expected_rows]
 
-    # Load the SentenceTransformer model
+    print("[INFO] Loading SentenceTransformer model...")
     model = SentenceTransformer('all-MiniLM-L6-v2')
+    
+    print("[INFO] Generating embeddings for generated quotes...")
     generated_embeddings = model.encode(generated_quotes_text, convert_to_tensor=True)
+    
+    print("[INFO] Generating embeddings for expected quotes...")
     expected_embeddings = model.encode(expected_quotes_text, convert_to_tensor=True)
 
-    # Compute cosine similarities between each generated quote and each expected quote
+    print("[INFO] Computing cosine similarities...")
     cosine_scores = util.cos_sim(generated_embeddings, expected_embeddings)
+    
     # For each generated quote, get the highest similarity score
     max_similarities = torch.max(cosine_scores, dim=1).values  # tensor of shape (num_generated,)
-    # Convert to percentage (0-100)
     max_similarities_percentage = (max_similarities * 100).tolist()
 
-    # Save each generated quote with its eval_match into the comparison_results table
+    print("[INFO] Saving comparison results to DB...")
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
     for row, eval_match in zip(generated_rows, max_similarities_percentage):
         order_val, speaker, quote_text, relevance, reasoning = row
+        print(f"[DEBUG] Order {order_val} - Highest similarity: {eval_match:.2f}")
         c.execute('''
             INSERT INTO comparison_results (file, theme, "order", Speaker, Quote, Relevance, Reasoning, eval_match)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (file, theme, order_val, speaker, quote_text, relevance, reasoning, eval_match))
     conn.commit()
     conn.close()
-
+    print("[INFO] Comparison complete.")
 
 # --- Function 3: Compute precision and recall and save the evaluation result ---
 def evaluate_results(file, theme, prompts, match_threshold=95, db_path=DB_PATH):
-    """
-    Computes precision and recall for the given file and theme using the following logic:
-      - Precision: Percentage of generated quotes (from comparison_results)
-                   that have an eval_match above the given match_threshold.
-      - Recall: For each expected quote (rows with eval=1 in generated_quotes),
-                compute its highest similarity (against all generated quotes).
-                Recall is the percentage of expected quotes with a match above the threshold.
-                
-    The result is saved in the evaluation_results table and also returned as a JSON object.
-    The prompts (a list) are included in the output JSON.
-    """
+    print(f"[INFO] Starting evaluation for file: '{file}', theme: '{theme}' with threshold {match_threshold}...")
     create_evaluation_results_table(db_path)
     
     # --- Compute precision ---
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
+    print("[DEBUG] Retrieving comparison results for precision calculation...")
     c.execute('''
         SELECT eval_match FROM comparison_results
         WHERE file = ? AND theme = ?
@@ -185,17 +170,18 @@ def evaluate_results(file, theme, prompts, match_threshold=95, db_path=DB_PATH):
     conn.close()
 
     if not comp_rows:
-        print(f"[evaluate_results] No comparison results found for file '{file}' and theme '{theme}'.")
+        print(f"[WARN] No comparison results found for file '{file}' and theme '{theme}'. Exiting evaluation.")
         return None
 
     total_generated = len(comp_rows)
     count_generated_above_threshold = sum(1 for (score,) in comp_rows if score >= match_threshold)
     precision = (count_generated_above_threshold / total_generated) * 100
+    print(f"[INFO] Precision calculated: {precision:.2f}%")
 
     # --- Compute recall ---
-    # Get expected quotes (eval=1) and all generated quotes (their text)
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
+    print("[DEBUG] Retrieving expected quotes for recall calculation...")
     c.execute('''
         SELECT Quote FROM generated_quotes
         WHERE file = ? AND theme = ? AND eval = 1
@@ -209,26 +195,28 @@ def evaluate_results(file, theme, prompts, match_threshold=95, db_path=DB_PATH):
     conn.close()
 
     if not expected_rows:
-        print(f"[evaluate_results] No expected quotes (eval=1) found for file '{file}' and theme '{theme}'.")
+        print(f"[WARN] No expected quotes (eval=1) found for file '{file}' and theme '{theme}'. Setting recall to 0.")
         recall = 0.0
     else:
         expected_quotes_text = [row[0] for row in expected_rows]
         generated_quotes_text = [row[0] for row in generated_rows]
 
-        # Re-load the model and compute embeddings
+        print("[INFO] Reloading model for recall evaluation...")
         model = SentenceTransformer('all-MiniLM-L6-v2')
+        print("[INFO] Generating embeddings for expected quotes (recall)...")
         expected_embeddings = model.encode(expected_quotes_text, convert_to_tensor=True)
+        print("[INFO] Generating embeddings for all generated quotes (recall)...")
         generated_embeddings = model.encode(generated_quotes_text, convert_to_tensor=True)
-        # Compute cosine similarity between each expected quote and each generated quote
+        
+        print("[INFO] Computing cosine similarities for recall...")
         cosine_scores = util.cos_sim(expected_embeddings, generated_embeddings)
-        # For each expected quote, find the maximum similarity across all generated quotes
         max_similarities_expected = torch.max(cosine_scores, dim=1).values
         max_similarities_expected_percentage = (max_similarities_expected * 100).tolist()
         count_expected_matched = sum(1 for score in max_similarities_expected_percentage if score >= match_threshold)
         total_expected = len(expected_quotes_text)
         recall = (count_expected_matched / total_expected) * 100
+        print(f"[INFO] Recall calculated: {recall:.2f}%")
 
-    # Build the evaluation result JSON
     result = {
         "file": file,
         "theme": theme,
@@ -237,7 +225,7 @@ def evaluate_results(file, theme, prompts, match_threshold=95, db_path=DB_PATH):
         "recall": recall
     }
 
-    # Save the result to the evaluation_results table
+    print("[INFO] Saving evaluation results to database...")
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute('''
@@ -247,11 +235,13 @@ def evaluate_results(file, theme, prompts, match_threshold=95, db_path=DB_PATH):
     conn.commit()
     conn.close()
 
+    print("[INFO] Evaluation complete.")
     return result
-
 
 # --- Example usage ---
 if __name__ == "__main__":
+    print("[INFO] Starting the script...")
+
     # Sample JSON object (generated_quotes)
     sample_json = {
         "file": "file_name.pdf",
@@ -269,8 +259,8 @@ if __name__ == "__main__":
     # Save the generated quotes into the DB.
     save_generated_quotes(sample_json)
 
-    # For demonstration, let’s manually mark some quotes as the expected ones (set eval = 1).
-    # For example, set eval = 1 for quotes 1 and 3.
+    # For demonstration, manually mark some quotes as expected ones (set eval = 1).
+    print("[INFO] Marking some quotes as expected (eval=1)...")
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''
@@ -280,11 +270,13 @@ if __name__ == "__main__":
     ''', (sample_json["file"], sample_json["theme"]))
     conn.commit()
     conn.close()
+    print("[INFO] Expected quotes marked.")
 
     # Compare the generated quotes to the expected ones.
     compare_quotes(sample_json["file"], sample_json["theme"], match_threshold=95)
 
     # Compute precision and recall. The eval_match threshold is configurable (default here is 95).
     evaluation = evaluate_results(sample_json["file"], sample_json["theme"], sample_json["prompts"], match_threshold=95)
-    print("Evaluation Result:")
+    print("[RESULT] Evaluation Result:")
     print(json.dumps(evaluation, indent=4))
+    print("[INFO] Script finished.")
