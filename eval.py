@@ -1,8 +1,11 @@
 import sqlite3
 import json
 import numpy as np
-from sentence_transformers import SentenceTransformer
+import openai
 from sklearn.metrics.pairwise import cosine_similarity
+
+# Set your OpenAI API key here or ensure it's set in your environment variables.
+openai.api_key = "YOUR_OPENAI_API_KEY"
 
 DB_PATH = "quotes.db"
 
@@ -68,6 +71,17 @@ def create_evaluation_results_table(db_path=DB_PATH):
     conn.close()
     print("[INFO] 'evaluation_results' table ready.")
 
+# --- Helper: Get OpenAI Embeddings ---
+def get_embeddings(texts, model="text-embedding-ada-002"):
+    """
+    Given a list of texts, returns a list of embeddings by calling the OpenAI API.
+    """
+    print("[INFO] Requesting embeddings from OpenAI...")
+    response = openai.Embedding.create(input=texts, model=model)
+    embeddings = [data_point["embedding"] for data_point in response["data"]]
+    print("[INFO] Received embeddings from OpenAI.")
+    return embeddings
+
 # --- Function 1: Save the generated_quotes JSON into SQLite ---
 def save_generated_quotes(generated_quotes, db_path=DB_PATH):
     print("[INFO] Saving generated quotes to database...")
@@ -93,7 +107,7 @@ def save_generated_quotes(generated_quotes, db_path=DB_PATH):
     conn.close()
     print("[INFO] Generated quotes have been saved.")
 
-# --- Function 2: Compare quotes using Sentence Transformers (without torch) ---
+# --- Function 2: Compare quotes using OpenAI embeddings ---
 def compare_quotes(file, theme, match_threshold=95, db_path=DB_PATH):
     print(f"[INFO] Starting comparison for file: '{file}', theme: '{theme}'...")
     create_comparison_results_table(db_path)
@@ -119,22 +133,15 @@ def compare_quotes(file, theme, match_threshold=95, db_path=DB_PATH):
         print(f"[WARN] No expected quotes (eval=1) found for file '{file}' and theme '{theme}'. Exiting comparison.")
         return
 
-    # Extract the text for computing embeddings
+    # Extract text for computing embeddings
     generated_quotes_text = [row[2] for row in generated_rows]  # Quote is the 3rd column
     expected_quotes_text = [row[0] for row in expected_rows]
 
-    print("[INFO] Loading SentenceTransformer model...")
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    
-    print("[INFO] Generating embeddings for generated quotes...")
-    generated_embeddings = model.encode(generated_quotes_text, convert_to_tensor=False)
-    
-    print("[INFO] Generating embeddings for expected quotes...")
-    expected_embeddings = model.encode(expected_quotes_text, convert_to_tensor=False)
+    # Get embeddings using OpenAI
+    generated_embeddings = get_embeddings(generated_quotes_text)
+    expected_embeddings = get_embeddings(expected_quotes_text)
 
     print("[INFO] Computing cosine similarities using sklearn...")
-    # Compute cosine similarity between each generated quote and each expected quote.
-    # This returns a 2D array of shape (num_generated, num_expected)
     cosine_scores = cosine_similarity(generated_embeddings, expected_embeddings)
     
     # For each generated quote, get the highest similarity score
@@ -203,12 +210,10 @@ def evaluate_results(file, theme, prompts, match_threshold=95, db_path=DB_PATH):
         expected_quotes_text = [row[0] for row in expected_rows]
         generated_quotes_text = [row[0] for row in generated_rows]
 
-        print("[INFO] Reloading model for recall evaluation...")
-        model = SentenceTransformer('all-MiniLM-L6-v2')
-        print("[INFO] Generating embeddings for expected quotes (recall)...")
-        expected_embeddings = model.encode(expected_quotes_text, convert_to_tensor=False)
-        print("[INFO] Generating embeddings for all generated quotes (recall)...")
-        generated_embeddings = model.encode(generated_quotes_text, convert_to_tensor=False)
+        print("[INFO] Getting embeddings for expected quotes (recall)...")
+        expected_embeddings = get_embeddings(expected_quotes_text)
+        print("[INFO] Getting embeddings for all generated quotes (recall)...")
+        generated_embeddings = get_embeddings(generated_quotes_text)
         
         print("[INFO] Computing cosine similarities for recall using sklearn...")
         cosine_scores = cosine_similarity(expected_embeddings, generated_embeddings)
