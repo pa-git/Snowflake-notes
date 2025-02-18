@@ -1,0 +1,28 @@
+### **Senior Data Scientist – Next-Gen IFPAT & GenAI Solutions**  
+
+Morgan Stanley is seeking a **Senior Data Scientist** to drive the development of next-generation **IFPAT Applications** and **Generative AI (GenAI) use cases**. This role will involve designing and optimizing AI-driven solutions that enhance financial services, leveraging advanced machine learning and natural language processing (NLP) techniques.
+
+The ideal candidate will have hands-on experience in **building AI applications, developing end-to-end ML pipelines, and integrating AI models into production systems**. You will collaborate with engineers, data scientists, and business teams to create innovative solutions that leverage **AI models, data processing pipelines, and automation frameworks**.
+
+### **Responsibilities**
+- Design, develop, and optimize **AI-driven applications** using modern machine learning and NLP techniques.
+- Architect and maintain **end-to-end ML pipelines**, including **data ingestion, preprocessing, model training, evaluation, and deployment**.
+- Develop and implement **GenAI solutions**, including **Retrieval-Augmented Generation (RAG), prompt engineering, and knowledge retrieval**.
+- Ensure **scalability and efficiency** of AI models in production environments.
+- Develop and maintain **automation pipelines** for AI workflows.
+- Conduct **model evaluation and performance monitoring**, ensuring reliability, robustness, and security.
+- Explore and evaluate **new AI/ML technologies** for applicability in financial services.
+- Collaborate with multidisciplinary teams to deliver **high-impact AI-driven solutions**.
+
+### **Qualifications**
+- **PhD or advanced degree** in Computer Science, AI, or a related field.
+- **Strong programming skills in Python**, with experience in AI/ML frameworks (**TensorFlow, PyTorch, LangChain**).
+- **Expertise in Generative AI, LLM-based applications, and text-based AI solutions**.
+- Experience working with **big data frameworks** (Spark, Polars, Hadoop) and efficient data manipulation.
+- Proficiency in **building and maintaining ML pipelines**.
+- Experience in **developing RESTful APIs and AI-driven microservices** (FastAPI, Flask).
+- Strong knowledge of **automation frameworks and CI/CD practices**.
+- Familiarity with **version control (Git), data management (MongoDB, Snowflake, Neo4j)**.
+- A team player with **strong problem-solving skills** and a results-driven mindset.
+
+This role is an opportunity to work on high-impact **AI-driven applications**, driving innovation in financial services through **next-generation AI technologies**. If you are passionate about **Generative AI, NLP, and AI application development**, we encourage you to apply.
