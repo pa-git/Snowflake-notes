@@ -2,20 +2,44 @@ import streamlit as st
 import pandas as pd
 import time
 
-# Configure the page for a wide layout and add custom CSS.
+# Configure the page for a wide layout and set page title.
 st.set_page_config(layout="wide", page_title="PDF Quote Extractor")
+
+# Inject custom CSS for a navy blue header, increased progress bar height, and removal of rounded corners.
 custom_css = """
 <style>
+/* Navy blue header with 65px height */
+.header {
+    background-color: navy;
+    height: 65px;
+    line-height: 65px; /* vertically center header text */
+    color: white;
+    font-size: 24px;
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Remove extra left/right padding from the main container */
 .block-container {
     padding-left: 1rem;
     padding-right: 1rem;
 }
+
+/* Increase height of the progress bar */
 div[role="progressbar"] > div {
     height: 40px !important;
+}
+
+/* Remove all rounded corners globally */
+* {
+    border-radius: 0 !important;
 }
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
+
+# Render the header.
+st.markdown('<div class="header">PDF Quote Extractor</div>', unsafe_allow_html=True)
 
 # ---------------------------
 # Sample Data and Initialization
@@ -143,13 +167,13 @@ with tabs[1]:
                     st.markdown(f"**Theme: {theme}**")
                     # Build a DataFrame containing only the Quote column.
                     df = pd.DataFrame({"Quote": quotes})
-                    # Display the grid using the data editor.
+                    # Display the grid using the data editor in read-only mode.
                     st.data_editor(
                         df,
                         key=f"{pdf}_{theme}_grid",
                         use_container_width=True,
                         num_rows="dynamic",
-                        disabled=True  # Read-only grid.
+                        disabled=True
                     )
                     # Use a multiselect widget to allow approval of quotes.
                     approved = st.multiselect(
