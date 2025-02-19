@@ -4,23 +4,20 @@ import time
 # ---------------------------
 # Sample Data and Initialization
 # ---------------------------
-
-# Simulate available PDFs and predefined themes
-available_pdfs = [f"Document_{i}.pdf" for i in range(1, 21)]  # 20 PDFs available
+available_pdfs = [f"Document_{i}.pdf" for i in range(1, 21)]
 predefined_themes = [
     "Inflation", "Income", "AI", "Healthcare", "Education", "Climate",
     "Technology", "Politics", "Economy", "Sports", "Entertainment", "Travel"
 ]
 
-# Initialize session state variables if not already present
 if 'results' not in st.session_state:
-    st.session_state.results = {}  # {pdf_name: {theme: [quotes, ...]}}
+    st.session_state.results = {}  # {pdf_name: {theme: [quotes]}}
 if 'logs' not in st.session_state:
     st.session_state.logs = []
 if 'processing' not in st.session_state:
     st.session_state.processing = False
 if 'approved_quotes' not in st.session_state:
-    st.session_state.approved_quotes = {}  # {pdf_name: {theme: [approved quotes, ...]}}
+    st.session_state.approved_quotes = {}  # {pdf_name: {theme: [approved quotes]}}
 
 # ---------------------------
 # Sidebar: PDF and Theme Selection
@@ -28,124 +25,59 @@ if 'approved_quotes' not in st.session_state:
 st.sidebar.header("Selection Options")
 
 selected_pdfs = st.sidebar.multiselect(
-    "Select PDFs (choose between 1 and 10)",
+    "Select PDFs (1 to 10)",
     options=available_pdfs
 )
 
 selected_themes = st.sidebar.multiselect(
-    "Select Themes (choose between 1 and 5)",
+    "Select Themes (1 to 5)",
     options=predefined_themes
 )
 
 # ---------------------------
-# Processing Simulation Function
+# Processing Function
 # ---------------------------
-def process_pdfs(pdfs, themes):
+def process_pdfs(pdfs, themes, logs_container, progress_bar):
     """
     Simulate processing PDFs by extracting quotes per theme.
-    Each PDF is processed sequentially with all themes.
+    Logs and progress updates are shown only in the Logs tab via 'logs_container'.
     """
-    # Reset results, logs, and approved quotes
+    # Reset data structures
     st.session_state.results = {}
     st.session_state.approved_quotes = {}
     st.session_state.logs = []
-    progress_bar = st.progress(0)
-    logs_placeholder = st.empty()
 
     total_tasks = len(pdfs) * len(themes)
     task_counter = 0
 
-    # Loop over each selected PDF
     for pdf in pdfs:
-        st.session_state.results[pdf] = {}         # {theme: [quotes]}
-        st.session_state.approved_quotes[pdf] = {}   # {theme: [approved quotes]}
+        st.session_state.results[pdf] = {}
+        st.session_state.approved_quotes[pdf] = {}
 
-        # Log starting the PDF processing
-        log_msg = f"Starting processing for {pdf}."
-        st.session_state.logs.append(log_msg)
-        logs_placeholder.text("\n".join(st.session_state.logs))
-        
-        # Process each theme for this PDF
+        # Log starting the PDF
+        msg = f"Starting processing for {pdf}."
+        st.session_state.logs.append(msg)
+        logs_container.text("\n".join(st.session_state.logs))
+
         for theme in themes:
-            log_msg = f"Processing theme '{theme}' for {pdf}."
-            st.session_state.logs.append(log_msg)
-            logs_placeholder.text("\n".join(st.session_state.logs))
-            
-            # Simulate a processing delay (replace with your actual processing logic)
+            msg = f"Processing theme '{theme}' for {pdf}."
+            st.session_state.logs.append(msg)
+            logs_container.text("\n".join(st.session_state.logs))
+
+            # Simulate a delay
             time.sleep(1)
 
-            # Simulate extraction of 5 quotes
+            # Simulate extracted quotes
             quotes = [f"Quote {i+1} for {pdf} on theme '{theme}'." for i in range(5)]
             st.session_state.results[pdf][theme] = quotes
-            st.session_state.approved_quotes[pdf][theme] = []  # Initialize empty approved list
+            st.session_state.approved_quotes[pdf][theme] = []
 
-            log_msg = f"Completed processing theme '{theme}' for {pdf}."
-            st.session_state.logs.append(log_msg)
-            logs_placeholder.text("\n".join(st.session_state.logs))
+            msg = f"Completed theme '{theme}' for {pdf}."
+            st.session_state.logs.append(msg)
+            logs_container.text("\n".join(st.session_state.logs))
 
             task_counter += 1
             progress_bar.progress(task_counter / total_tasks)
-        
-        log_msg = f"Finished processing for {pdf}."
-        st.session_state.logs.append(log_msg)
-        logs_placeholder.text("\n".join(st.session_state.logs))
 
-    st.session_state.processing = False
-    st.success("Processing completed!")
-
-# ---------------------------
-# Submission Button Handler
-# ---------------------------
-if st.sidebar.button("Submit"):
-    # Validate PDF selection (at least 1, up to 10)
-    if len(selected_pdfs) < 1:
-        st.sidebar.error("Please select at least 1 PDF.")
-    elif len(selected_pdfs) > 10:
-        st.sidebar.error("Please select no more than 10 PDFs.")
-    # Validate theme selection (at least 1, up to 5)
-    elif len(selected_themes) < 1:
-        st.sidebar.error("Please select at least 1 theme.")
-    elif len(selected_themes) > 5:
-        st.sidebar.error("Please select no more than 5 themes.")
-    else:
-        st.session_state.processing = True
-        # Start processing (this loop will update logs and progress bar in real time)
-        process_pdfs(selected_pdfs, selected_themes)
-
-# ---------------------------
-# Main Interface Tabs: Logs and PDF Results
-# ---------------------------
-# Create one level of tabs: one for Logs and one per processed PDF
-if st.session_state.results:
-    # Create tab labels: first "Logs", then each PDF name
-    tab_labels = ["Logs"] + list(st.session_state.results.keys())
-    tabs = st.tabs(tab_labels)
-
-    # First tab for Logs
-    with tabs[0]:
-        st.header("Processing Logs")
-        st.text("\n".join(st.session_state.logs))
-
-    # Subsequent tabs for each PDF
-    for idx, pdf in enumerate(st.session_state.results.keys(), start=1):
-        with tabs[idx]:
-            st.header(f"Results for {pdf}")
-            # For each theme within the PDF, display the quotes and approval checkboxes
-            for theme, quotes in st.session_state.results[pdf].items():
-                st.markdown(f"**Theme: {theme}**")
-                approved = []
-                for quote in quotes:
-                    # Create a unique key for each checkbox to avoid collisions
-                    checkbox_key = f"{pdf}_{theme}_{quote}"
-                    if st.checkbox(quote, key=checkbox_key):
-                        approved.append(quote)
-                # Update approved quotes in session state
-                st.session_state.approved_quotes[pdf][theme] = approved
-
-            # Button to (re)submit approved quotes for this PDF
-            if st.button(f"Resubmit Approved Quotes for {pdf}"):
-                # Replace the following with your backend submission logic
-                st.write("Approved quotes submitted for", pdf)
-                st.write(st.session_state.approved_quotes[pdf])
-else:
-    st.info("After submitting, processing logs and PDF results will appear as tabs.")
+        msg = f"Finished processing for {pdf}."
+  
