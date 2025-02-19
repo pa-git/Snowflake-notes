@@ -51,7 +51,8 @@ def process_pdfs(pdfs, themes):
     st.session_state.approved_quotes = {}
     st.session_state.logs = []
     progress_bar = st.progress(0)
-    logs_placeholder = st.empty()
+    # This placeholder shows only the most recent log message in real time.
+    log_placeholder = st.empty()
 
     total_tasks = len(pdfs) * len(themes)
     task_counter = 0
@@ -64,13 +65,13 @@ def process_pdfs(pdfs, themes):
         # Log starting the PDF processing
         log_msg = f"Starting processing for {pdf}."
         st.session_state.logs.append(log_msg)
-        logs_placeholder.text(st.session_state.logs[-1])
+        log_placeholder.text(st.session_state.logs[-1])
         
         # Process each theme for this PDF
         for theme in themes:
             log_msg = f"Processing theme '{theme}' for {pdf}."
             st.session_state.logs.append(log_msg)
-            logs_placeholder.text(st.session_state.logs[-1])
+            log_placeholder.text(st.session_state.logs[-1])
             
             # Simulate a processing delay (replace with your actual processing logic)
             time.sleep(1)
@@ -82,14 +83,14 @@ def process_pdfs(pdfs, themes):
 
             log_msg = f"Completed processing theme '{theme}' for {pdf}."
             st.session_state.logs.append(log_msg)
-            logs_placeholder.text(st.session_state.logs[-1])
+            log_placeholder.text(st.session_state.logs[-1])
 
             task_counter += 1
             progress_bar.progress(task_counter / total_tasks)
         
         log_msg = f"Finished processing for {pdf}."
         st.session_state.logs.append(log_msg)
-        logs_placeholder.text(st.session_state.logs[-1])
+        log_placeholder.text(st.session_state.logs[-1])
 
     st.session_state.processing = False
     st.success("Processing completed!")
@@ -119,8 +120,8 @@ tabs = st.tabs(["Logs", "Results"])
 with tabs[0]:
     st.header("Processing Logs")
     if st.session_state.logs:
-        # Only display the last log message
-        st.text(st.session_state.logs[-1])
+        # Display the full log history
+        st.text("\n".join(st.session_state.logs))
     else:
         st.info("Logs will appear here once processing starts.")
 
