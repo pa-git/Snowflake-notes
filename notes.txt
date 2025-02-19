@@ -1,0 +1,7 @@
+This slide explains the Metadata section of the architecture diagram. Metadata includes various components like Views, Tools, Table and Column Descriptions, DSL Examples, and Variance Metadata. These components help in defining and understanding the structure and context of the data.
+
+
+This slide covers the Snowflake Views section. It contains views like the IFAT View Parable Roster, which integrates data from MONTHLY SNAPSHOT ROSTER, RESOURCE CATEGORY, LOCATION, CALENDAR, and ORG REFERENCE. These views provide structured access to the data for various analyses.
+
+
+This slide highlights the Parable Views section. It includes the IFAT View, IFAT Variance, and IFAT Point in Time views. These are used with Parable View Logic and Parable Rewrite Logic to analyze and interpret variances in the data.
