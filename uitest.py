@@ -2,27 +2,25 @@ import streamlit as st
 import pandas as pd
 import time
 
-# Set page configuration for wide layout and update page title.
+# Configure page layout and custom CSS.
 st.set_page_config(layout="wide", page_title="PDF Quote Extractor")
-
-# Custom CSS: Remove extra padding, increase progress bar height, and remove all rounded corners.
 custom_css = """
 <style>
-/* Remove extra left/right padding from the main container */
+/* Remove extra side padding and increase progress bar height, remove rounded corners */
 .block-container {
     padding-left: 1rem;
     padding-right: 1rem;
 }
-
-/* Increase height of the progress bar and remove rounded corners */
 div[role="progressbar"] > div {
     height: 40px !important;
     border-radius: 0 !important;
 }
-
-/* Remove rounded corners for all elements */
 * {
     border-radius: 0 !important;
+}
+/* Hide the header text for the first column (the checkbox column) in the data editor */
+div[data-baseweb="data-table"] thead tr th:first-child {
+    color: transparent !important;
 }
 </style>
 """
@@ -74,14 +72,14 @@ def process_pdfs(pdfs, themes):
     st.session_state.logs = []
     progress_bar = st.progress(0)
     log_placeholder = st.empty()  # Shows only the latest log message in real time.
-
+    
     total_tasks = len(pdfs) * len(themes)
     task_counter = 0
 
     for pdf in pdfs:
         st.session_state.results[pdf] = {}       # To store quotes per theme.
         st.session_state.approved_quotes[pdf] = {}  # To store approved quotes per theme.
-
+        
         log_msg = f"Starting processing for {pdf}."
         st.session_state.logs.append(log_msg)
         log_placeholder.text(st.session_state.logs[-1])
@@ -101,11 +99,11 @@ def process_pdfs(pdfs, themes):
             ]
             st.session_state.results[pdf][theme] = quotes
             st.session_state.approved_quotes[pdf][theme] = []  # Initialize empty approved list.
-
+            
             log_msg = f"Completed processing theme '{theme}' for {pdf}."
             st.session_state.logs.append(log_msg)
             log_placeholder.text(st.session_state.logs[-1])
-
+            
             task_counter += 1
             progress_bar.progress(task_counter / total_tasks)
             
@@ -129,9 +127,9 @@ if st.sidebar.button("Submit"):
         process_pdfs(selected_pdfs, selected_themes)
 
 # ---------------------------
-# Main Interface Tabs: Results & Logs
+# Main Interface Tabs: Results & Logs (Results first)
 # ---------------------------
-tabs = st.tabs(["Results", "Logs"])  # Results tab is now first.
+tabs = st.tabs(["Results", "Logs"])
 
 with tabs[0]:
     st.header("PDF Results and Quote Approval")
@@ -144,20 +142,21 @@ with tabs[0]:
                 approved_for_pdf = {}
                 for theme, quotes in st.session_state.results[pdf].items():
                     st.markdown(f"**Theme: {theme}**")
-                    # Build a DataFrame with an 'Approved' checkbox column and the Quote.
+                    # Build a DataFrame with two columns: a boolean for selection and the quote text.
+                    # The "Select" column will serve as the checkbox column.
                     df = pd.DataFrame({
-                        "Approved": [False] * len(quotes),
+                        "Select": [False] * len(quotes),
                         "Quote": quotes
                     })
-                    # Display the grid using the data editor.
+                    # Display the grid using the data editor. The header for "Select" is hidden via CSS.
                     edited_df = st.data_editor(
                         df,
                         key=f"{pdf}_{theme}_grid",
                         use_container_width=True,
                         num_rows="dynamic"
                     )
-                    # Extract approved quotes based on the checkbox values.
-                    approved_quotes = edited_df.loc[edited_df["Approved"] == True, "Quote"].tolist()
+                    # Extract the quotes where the checkbox is checked.
+                    approved_quotes = edited_df.loc[edited_df["Select"] == True, "Quote"].tolist()
                     approved_for_pdf[theme] = approved_quotes
                 st.session_state.approved_quotes[pdf] = approved_for_pdf
                 if st.button(f"Resubmit Approved Quotes for {pdf}"):
