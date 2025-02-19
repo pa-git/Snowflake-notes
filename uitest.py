@@ -2,8 +2,7 @@ import streamlit as st
 import pandas as pd
 import time
 
-# Set page configuration for a wide layout and include custom CSS to reduce side margins
-# and increase the progress bar height.
+# Configure the page for a wide layout and add custom CSS.
 st.set_page_config(layout="wide", page_title="PDF Quote Extractor")
 custom_css = """
 <style>
@@ -139,30 +138,28 @@ with tabs[1]:
         for pdf in pdf_names:
             with pdf_tabs[pdf_names.index(pdf)]:
                 st.subheader(f"Results for {pdf}")
-                # Dictionary to hold the data editor outputs for each theme.
-                edited_grids = {}
+                approved_for_pdf = {}
                 for theme, quotes in st.session_state.results[pdf].items():
                     st.markdown(f"**Theme: {theme}**")
-                    # Build a DataFrame for the grid.
-                    df = pd.DataFrame({
-                        "Select": [False] * len(quotes),
-                        "Quote #": list(range(1, len(quotes) + 1)),
-                        "Quote": quotes
-                    })
+                    # Build a DataFrame containing only the Quote column.
+                    df = pd.DataFrame({"Quote": quotes})
                     # Display the grid using the data editor.
-                    edited_df = st.data_editor(
+                    st.data_editor(
                         df,
                         key=f"{pdf}_{theme}_grid",
                         use_container_width=True,
-                        num_rows="dynamic"
+                        num_rows="dynamic",
+                        disabled=True  # Read-only grid.
                     )
-                    edited_grids[theme] = edited_df
+                    # Use a multiselect widget to allow approval of quotes.
+                    approved = st.multiselect(
+                        "Select approved quotes",
+                        options=quotes,
+                        key=f"{pdf}_{theme}_select"
+                    )
+                    approved_for_pdf[theme] = approved
+                st.session_state.approved_quotes[pdf] = approved_for_pdf
                 if st.button(f"Resubmit Approved Quotes for {pdf}"):
-                    approved_data = {}
-                    for theme, grid_df in edited_grids.items():
-                        approved_quotes = grid_df.loc[grid_df["Select"] == True, "Quote"].tolist()
-                        approved_data[theme] = approved_quotes
-                    st.session_state.approved_quotes[pdf] = approved_data
-                    st.write("Approved quotes for", pdf, ":", approved_data)
+                    st.write("Approved quotes for", pdf, ":", st.session_state.approved_quotes[pdf])
     else:
         st.info("Results will appear here after processing is complete.")
