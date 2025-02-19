@@ -20,7 +20,7 @@ div[role="progressbar"] > div {
     border-radius: 0 !important;
 }
 
-/* Remove all rounded corners across all elements */
+/* Remove rounded corners for all elements */
 * {
     border-radius: 0 !important;
 }
@@ -131,7 +131,7 @@ if st.sidebar.button("Submit"):
 # ---------------------------
 # Main Interface Tabs: Results & Logs
 # ---------------------------
-tabs = st.tabs(["Results", "Logs"])  # Results tab is first now.
+tabs = st.tabs(["Results", "Logs"])  # Results tab is now first.
 
 with tabs[0]:
     st.header("PDF Results and Quote Approval")
@@ -144,23 +144,21 @@ with tabs[0]:
                 approved_for_pdf = {}
                 for theme, quotes in st.session_state.results[pdf].items():
                     st.markdown(f"**Theme: {theme}**")
-                    # Build a DataFrame containing only the Quote column.
-                    df = pd.DataFrame({"Quote": quotes})
-                    # Display the grid using the data editor in read-only mode.
-                    st.data_editor(
+                    # Build a DataFrame with an 'Approved' checkbox column and the Quote.
+                    df = pd.DataFrame({
+                        "Approved": [False] * len(quotes),
+                        "Quote": quotes
+                    })
+                    # Display the grid using the data editor.
+                    edited_df = st.data_editor(
                         df,
                         key=f"{pdf}_{theme}_grid",
                         use_container_width=True,
-                        num_rows="dynamic",
-                        disabled=True
+                        num_rows="dynamic"
                     )
-                    # Use a multiselect widget to allow approval of quotes.
-                    approved = st.multiselect(
-                        "Select approved quotes",
-                        options=quotes,
-                        key=f"{pdf}_{theme}_select"
-                    )
-                    approved_for_pdf[theme] = approved
+                    # Extract approved quotes based on the checkbox values.
+                    approved_quotes = edited_df.loc[edited_df["Approved"] == True, "Quote"].tolist()
+                    approved_for_pdf[theme] = approved_quotes
                 st.session_state.approved_quotes[pdf] = approved_for_pdf
                 if st.button(f"Resubmit Approved Quotes for {pdf}"):
                     st.write("Approved quotes for", pdf, ":", st.session_state.approved_quotes[pdf])
