@@ -14,6 +14,18 @@ custom_css = """
 div[role="progressbar"] > div {
     height: 40px !important;
 }
+/* Styling for results table rows */
+.results-row {
+    border: 1px solid grey;
+    padding: 5px;
+    margin-bottom: 2px;
+}
+.results-row:nth-child(odd) {
+    background-color: #ffffff;
+}
+.results-row:nth-child(even) {
+    background-color: #f0f0f0;
+}
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
@@ -63,7 +75,7 @@ def process_pdfs(pdfs, themes):
     st.session_state.approved_quotes = {}
     st.session_state.logs = []
     progress_bar = st.progress(0)
-    log_placeholder = st.empty()  # This shows the most recent log line in real time.
+    log_placeholder = st.empty()  # Shows the most recent log line in real time.
 
     total_tasks = len(pdfs) * len(themes)
     task_counter = 0
@@ -86,7 +98,7 @@ def process_pdfs(pdfs, themes):
             
             # Generate 5 longer dummy quotes.
             quotes = [
-                f"Quote {i+1} for {pdf} on theme '{theme}': Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+                f"Quote {i+1} for {pdf} on theme '{theme}': Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
                 for i in range(5)
             ]
             st.session_state.results[pdf][theme] = quotes
@@ -126,7 +138,7 @@ tabs = st.tabs(["Logs", "Results"])
 with tabs[0]:
     st.header("Processing Logs")
     if st.session_state.logs:
-        # Show full log history in the Logs tab.
+        # Display the full log history in the Logs tab.
         st.text("\n".join(st.session_state.logs))
     else:
         st.info("Logs will appear here once processing starts.")
@@ -143,19 +155,23 @@ with tabs[1]:
                     st.markdown(f"**Theme: {theme}**")
                     approved = []
                     
-                    # Table header using columns.
+                    # Create table header using columns.
                     header_cols = st.columns([1, 1, 8])
                     header_cols[0].write("Select")
                     header_cols[1].write("Quote #")
                     header_cols[2].write("Quote")
                     
-                    # Display each quote in a row.
+                    # Display each quote in a row with alternate background and border.
                     for i, quote in enumerate(quotes):
+                        # Determine row background color via CSS (handled in the injected CSS).
+                        st.markdown(f'<div class="results-row">', unsafe_allow_html=True)
                         cols = st.columns([1, 1, 8])
                         checkbox_key = f"{pdf}_{theme}_{i}"
                         checked = cols[0].checkbox("", key=checkbox_key)
                         cols[1].write(f"{i+1}")
                         cols[2].write(quote)
+                        st.markdown("</div>", unsafe_allow_html=True)
+                        
                         if checked:
                             approved.append(quote)
                     
