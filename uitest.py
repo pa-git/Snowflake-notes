@@ -139,4 +139,16 @@ with tabs[1]:
                     approved = []
                     for quote in quotes:
                         # Create a unique key for each checkbox to avoid collisions
-                        checkbox_
+                        checkbox_key = f"{pdf}_{theme}_{quote}"
+                        if st.checkbox(quote, key=checkbox_key):
+                            approved.append(quote)
+                    # Update approved quotes in session state
+                    st.session_state.approved_quotes[pdf][theme] = approved
+
+                # Button to (re)submit approved quotes for this PDF
+                if st.button(f"Resubmit Approved Quotes for {pdf}"):
+                    # Replace the following with your backend submission logic
+                    st.write("Approved quotes submitted for", pdf)
+                    st.write(st.session_state.approved_quotes[pdf])
+    else:
+        st.info("Results will appear here after processing is complete.")
