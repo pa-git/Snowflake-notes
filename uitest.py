@@ -1,6 +1,21 @@
 import streamlit as st
 import time
 
+# Set page configuration for wide layout
+st.set_page_config(layout="wide", page_title="PDF Quote Extractor")
+
+# Optionally, you can add custom CSS to further control margins/padding
+custom_css = """
+<style>
+/* Remove extra left/right padding from the main block container */
+.block-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+</style>
+"""
+st.markdown(custom_css, unsafe_allow_html=True)
+
 # ---------------------------
 # Sample Data and Initialization
 # ---------------------------
