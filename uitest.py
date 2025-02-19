@@ -2,44 +2,31 @@ import streamlit as st
 import pandas as pd
 import time
 
-# Configure the page for a wide layout and set page title.
+# Set page configuration for wide layout and update page title.
 st.set_page_config(layout="wide", page_title="PDF Quote Extractor")
 
-# Inject custom CSS for a navy blue header, increased progress bar height, and removal of rounded corners.
+# Custom CSS: Remove extra padding, increase progress bar height, and remove all rounded corners.
 custom_css = """
 <style>
-/* Navy blue header with 65px height */
-.header {
-    background-color: navy;
-    height: 65px;
-    line-height: 65px; /* vertically center header text */
-    color: white;
-    font-size: 24px;
-    padding-left: 1rem;
-    margin-bottom: 1rem;
-}
-
 /* Remove extra left/right padding from the main container */
 .block-container {
     padding-left: 1rem;
     padding-right: 1rem;
 }
 
-/* Increase height of the progress bar */
+/* Increase height of the progress bar and remove rounded corners */
 div[role="progressbar"] > div {
     height: 40px !important;
+    border-radius: 0 !important;
 }
 
-/* Remove all rounded corners globally */
+/* Remove all rounded corners across all elements */
 * {
     border-radius: 0 !important;
 }
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
-
-# Render the header.
-st.markdown('<div class="header">PDF Quote Extractor</div>', unsafe_allow_html=True)
 
 # ---------------------------
 # Sample Data and Initialization
@@ -142,19 +129,11 @@ if st.sidebar.button("Submit"):
         process_pdfs(selected_pdfs, selected_themes)
 
 # ---------------------------
-# Main Interface Tabs: Logs & Results
+# Main Interface Tabs: Results & Logs
 # ---------------------------
-tabs = st.tabs(["Logs", "Results"])
+tabs = st.tabs(["Results", "Logs"])  # Results tab is first now.
 
 with tabs[0]:
-    st.header("Processing Logs")
-    if st.session_state.logs:
-        # Display the full log history in the Logs tab.
-        st.text("\n".join(st.session_state.logs))
-    else:
-        st.info("Logs will appear here once processing starts.")
-
-with tabs[1]:
     st.header("PDF Results and Quote Approval")
     if st.session_state.results:
         pdf_names = list(st.session_state.results.keys())
@@ -187,3 +166,10 @@ with tabs[1]:
                     st.write("Approved quotes for", pdf, ":", st.session_state.approved_quotes[pdf])
     else:
         st.info("Results will appear here after processing is complete.")
+
+with tabs[1]:
+    st.header("Processing Logs")
+    if st.session_state.logs:
+        st.text("\n".join(st.session_state.logs))
+    else:
+        st.info("Logs will appear here once processing starts.")
