@@ -1,62 +1,51 @@
 import streamlit as st
-import pandas as pd
 import time
 
-# Configure page layout and custom CSS.
+# ---------------------------
+# Page Setup and Custom CSS
+# ---------------------------
 st.set_page_config(layout="wide", page_title="PDF Quote Extractor")
-custom_css = """
-<style>
-/* Remove extra side padding and increase progress bar height, remove rounded corners */
-.block-container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-}
-div[role="progressbar"] > div {
-    height: 40px !important;
-    border-radius: 0 !important;
-}
-* {
-    border-radius: 0 !important;
-}
-/* Hide the header text for the first column (the checkbox column) in the data editor */
-div[data-baseweb="data-table"] thead tr th:first-child {
-    color: transparent !important;
-}
-</style>
-"""
-st.markdown(custom_css, unsafe_allow_html=True)
+st.markdown(
+    """
+    <style>
+    /* Remove all rounded corners */
+    * {
+        border-radius: 0 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # ---------------------------
 # Sample Data and Initialization
 # ---------------------------
-available_pdfs = [f"Document_{i}.pdf" for i in range(1, 21)]
+available_pdfs = [f"Document_{i}.pdf" for i in range(1, 21)]  # 20 PDFs available
 predefined_themes = [
     "Inflation", "Income", "AI", "Healthcare", "Education", "Climate",
     "Technology", "Politics", "Economy", "Sports", "Entertainment", "Travel"
 ]
 
 if 'results' not in st.session_state:
-    st.session_state.results = {}  # {pdf: {theme: [quotes]}}
+    st.session_state.results = {}  # structure: { pdf: { theme: [quotes] } }
 if 'logs' not in st.session_state:
     st.session_state.logs = []
 if 'processing' not in st.session_state:
     st.session_state.processing = False
 if 'approved_quotes' not in st.session_state:
-    st.session_state.approved_quotes = {}  # {pdf: {theme: [approved quotes]}}
+    st.session_state.approved_quotes = {}  # structure: { pdf: { theme: [approved quotes] } }
 
 # ---------------------------
 # Sidebar: PDF and Theme Selection
 # ---------------------------
 st.sidebar.header("Selection Options")
-
 selected_pdfs = st.sidebar.multiselect(
     "Select PDFs (choose at least 1)",
-    options=available_pdfs
+    options=available_pdfs,
 )
-
 selected_themes = st.sidebar.multiselect(
     "Select Themes (choose up to 5)",
-    options=predefined_themes
+    options=predefined_themes,
 )
 
 # ---------------------------
@@ -64,53 +53,55 @@ selected_themes = st.sidebar.multiselect(
 # ---------------------------
 def process_pdfs(pdfs, themes):
     """
-    Simulate processing PDFs by extracting longer dummy quotes for each theme.
-    Each PDF is processed sequentially for all selected themes.
+    Simulate processing PDFs by extracting quotes per theme.
+    For each PDF, each selected theme is processed sequentially.
     """
     st.session_state.results = {}
     st.session_state.approved_quotes = {}
     st.session_state.logs = []
     progress_bar = st.progress(0)
-    log_placeholder = st.empty()  # Shows only the latest log message in real time.
-    
+    log_placeholder = st.empty()
+
     total_tasks = len(pdfs) * len(themes)
     task_counter = 0
 
     for pdf in pdfs:
-        st.session_state.results[pdf] = {}       # To store quotes per theme.
-        st.session_state.approved_quotes[pdf] = {}  # To store approved quotes per theme.
-        
+        st.session_state.results[pdf] = {}
+        st.session_state.approved_quotes[pdf] = {}
         log_msg = f"Starting processing for {pdf}."
         st.session_state.logs.append(log_msg)
         log_placeholder.text(st.session_state.logs[-1])
-        
+
         for theme in themes:
             log_msg = f"Processing theme '{theme}' for {pdf}."
             st.session_state.logs.append(log_msg)
             log_placeholder.text(st.session_state.logs[-1])
-            
-            # Simulate processing delay.
+
+            # Simulate processing delay (replace with actual processing)
             time.sleep(1)
-            
-            # Generate 5 longer dummy quotes.
+
+            # Simulate extraction of 5 longer quotes for the given PDF and theme.
+            long_quote = (
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
+                "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+            )
             quotes = [
-                f"Quote {i+1} for {pdf} on theme '{theme}': Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
-                for i in range(5)
+                f"{long_quote} (Quote {i+1} for {pdf} on theme '{theme}')" for i in range(5)
             ]
             st.session_state.results[pdf][theme] = quotes
-            st.session_state.approved_quotes[pdf][theme] = []  # Initialize empty approved list.
-            
+            st.session_state.approved_quotes[pdf][theme] = []  # Initialize as empty list
+
             log_msg = f"Completed processing theme '{theme}' for {pdf}."
             st.session_state.logs.append(log_msg)
             log_placeholder.text(st.session_state.logs[-1])
-            
+
             task_counter += 1
             progress_bar.progress(task_counter / total_tasks)
-            
+
         log_msg = f"Finished processing for {pdf}."
         st.session_state.logs.append(log_msg)
         log_placeholder.text(st.session_state.logs[-1])
-        
+
     st.session_state.processing = False
     st.success("Processing completed!")
 
@@ -127,40 +118,44 @@ if st.sidebar.button("Submit"):
         process_pdfs(selected_pdfs, selected_themes)
 
 # ---------------------------
-# Main Interface Tabs: Results & Logs (Results first)
+# Main Interface Tabs: Results (first) and Logs (second)
 # ---------------------------
 tabs = st.tabs(["Results", "Logs"])
 
 with tabs[0]:
     st.header("PDF Results and Quote Approval")
     if st.session_state.results:
+        # For each processed PDF, create a sub-tab
         pdf_names = list(st.session_state.results.keys())
         pdf_tabs = st.tabs(pdf_names)
-        for pdf in pdf_names:
-            with pdf_tabs[pdf_names.index(pdf)]:
+        for idx, pdf in enumerate(pdf_names):
+            with pdf_tabs[idx]:
                 st.subheader(f"Results for {pdf}")
-                approved_for_pdf = {}
                 for theme, quotes in st.session_state.results[pdf].items():
                     st.markdown(f"**Theme: {theme}**")
-                    # Build a DataFrame with two columns: a boolean for selection and the quote text.
-                    # The "Select" column will serve as the checkbox column.
-                    df = pd.DataFrame({
-                        "Select": [False] * len(quotes),
-                        "Quote": quotes
-                    })
-                    # Display the grid using the data editor. The header for "Select" is hidden via CSS.
-                    edited_df = st.data_editor(
-                        df,
-                        key=f"{pdf}_{theme}_grid",
-                        use_container_width=True,
-                        num_rows="dynamic"
-                    )
-                    # Extract the quotes where the checkbox is checked.
-                    approved_quotes = edited_df.loc[edited_df["Select"] == True, "Quote"].tolist()
-                    approved_for_pdf[theme] = approved_quotes
-                st.session_state.approved_quotes[pdf] = approved_for_pdf
-                if st.button(f"Resubmit Approved Quotes for {pdf}"):
-                    st.write("Approved quotes for", pdf, ":", st.session_state.approved_quotes[pdf])
+                    # For each quote, simulate a table row with two columns:
+                    #  - Left: interactive checkbox
+                    #  - Right: quote text in a bordered cell
+                    for i, quote in enumerate(quotes):
+                        # Alternate row colors: white for even rows, light grey for odd rows.
+                        row_color = "#ffffff" if i % 2 == 0 else "#f0f0f0"
+                        col1, col2 = st.columns([1, 9])
+                        with col1:
+                            # Render checkbox without a label
+                            approved = st.checkbox("", key=f"{pdf}_{theme}_{i}")
+                        with col2:
+                            st.markdown(
+                                f"<div style='border:1px solid black; padding:5px; background-color:{row_color}; border-radius:0;'>{quote}</div>",
+                                unsafe_allow_html=True,
+                            )
+                        # Save approved quotes if checkbox is checked
+                        if approved and quote not in st.session_state.approved_quotes[pdf][theme]:
+                            st.session_state.approved_quotes[pdf][theme].append(quote)
+
+                    # Button to (re)submit approved quotes for this PDF and theme.
+                    if st.button(f"Resubmit Approved Quotes for {pdf} - {theme}", key=f"resubmit_{pdf}_{theme}"):
+                        st.write("Approved quotes submitted for", pdf, "theme", theme)
+                        st.write(st.session_state.approved_quotes[pdf][theme])
     else:
         st.info("Results will appear here after processing is complete.")
 
