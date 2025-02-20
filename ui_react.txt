@@ -1,0 +1,270 @@
+import React, { useState } from 'react';
+
+function App() {
+  // Simulated data
+  const availablePdfs = Array.from({ length: 20 }, (_, i) => `Document_${i + 1}.pdf`);
+  const predefinedThemes = [
+    "Inflation", "Income", "AI", "Healthcare", "Education", "Climate",
+    "Technology", "Politics", "Economy", "Sports", "Entertainment", "Travel"
+  ];
+
+  // Component state
+  const [selectedPdfs, setSelectedPdfs] = useState([]);
+  const [selectedThemes, setSelectedThemes] = useState([]);
+  const [results, setResults] = useState({}); // { pdf: { theme: [quotes] } }
+  const [logs, setLogs] = useState([]);
+  const [approvedQuotes, setApprovedQuotes] = useState({}); // { pdf: { theme: [approved quotes] } }
+  const [processing, setProcessing] = useState(false);
+  const [activeTab, setActiveTab] = useState("results");
+  const [error, setError] = useState("");
+
+  // Handlers for multi-selects
+  const handlePdfSelection = (e) => {
+    const options = e.target.options;
+    const selected = [];
+    for (let i = 0; i < options.length; i++) {
+      if (options[i].selected) {
+        selected.push(options[i].value);
+      }
+    }
+    setSelectedPdfs(selected);
+  };
+
+  const handleThemeSelection = (e) => {
+    const options = e.target.options;
+    const selected = [];
+    for (let i = 0; i < options.length; i++) {
+      if (options[i].selected) {
+        selected.push(options[i].value);
+      }
+    }
+    setSelectedThemes(selected);
+  };
+
+  // Utility delay function for simulation
+  const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  // Simulate processing of PDFs and themes sequentially
+  const processPdfs = async () => {
+    // Validate selections
+    if (selectedPdfs.length < 1) {
+      setError("Please select at least 1 PDF.");
+      return;
+    }
+    if (selectedThemes.length < 1 || selectedThemes.length > 5) {
+      setError("Please select between 1 and 5 themes.");
+      return;
+    }
+    setError("");
+    setProcessing(true);
+    setResults({});
+    setApprovedQuotes({});
+    setLogs([]);
+
+    const newResults = {};
+    const newApprovedQuotes = {};
+    const newLogs = [];
+
+    const totalTasks = selectedPdfs.length * selectedThemes.length;
+    let taskCounter = 0;
+
+    for (const pdf of selectedPdfs) {
+      newResults[pdf] = {};
+      newApprovedQuotes[pdf] = {};
+      newLogs.push(`Starting processing for ${pdf}.`);
+      setLogs([...newLogs]);
+
+      for (const theme of selectedThemes) {
+        newLogs.push(`Processing theme '${theme}' for ${pdf}.`);
+        setLogs([...newLogs]);
+
+        // Simulate delay (e.g., 1 second per task)
+        await delay(1000);
+
+        // Generate 5 longer quotes for the current pdf and theme
+        const longQuote =
+          "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
+        const quotes = Array.from({ length: 5 }, (_, i) =>
+          `${longQuote} (Quote ${i + 1} for ${pdf} on theme '${theme}')`
+        );
+        newResults[pdf][theme] = quotes;
+        newApprovedQuotes[pdf][theme] = [];
+
+        newLogs.push(`Completed processing theme '${theme}' for ${pdf}.`);
+        taskCounter++;
+        setLogs([...newLogs]);
+      }
+      newLogs.push(`Finished processing for ${pdf}.`);
+      setLogs([...newLogs]);
+    }
+    setResults(newResults);
+    setApprovedQuotes(newApprovedQuotes);
+    setProcessing(false);
+  };
+
+  // Update approved quotes state when a checkbox is toggled
+  const handleCheckboxChange = (pdf, theme, quote, checked) => {
+    setApprovedQuotes(prev => {
+      const updated = { ...prev };
+      if (!updated[pdf]) updated[pdf] = {};
+      if (!updated[pdf][theme]) updated[pdf][theme] = [];
+      if (checked) {
+        if (!updated[pdf][theme].includes(quote)) {
+          updated[pdf][theme].push(quote);
+        }
+      } else {
+        updated[pdf][theme] = updated[pdf][theme].filter(q => q !== quote);
+      }
+      return updated;
+    });
+  };
+
+  // Handler for resubmission (for demo purposes, we simply alert the approved quotes)
+  const handleResubmit = (pdf, theme) => {
+    const approved = (approvedQuotes[pdf] && approvedQuotes[pdf][theme]) || [];
+    alert(`Approved quotes for ${pdf} on theme ${theme}:\n${approved.join("\n")}`);
+  };
+
+  // Inline CSS styles to enforce wide layout, square corners, and table styling
+  const styles = {
+    container: {
+      display: "flex",
+      minHeight: "100vh",
+      fontFamily: "Arial, sans-serif"
+    },
+    sidebar: {
+      width: "20%",
+      padding: "20px",
+      borderRight: "1px solid #ccc"
+    },
+    main: {
+      flex: 1,
+      padding: "20px"
+    },
+    button: {
+      width: "100%",
+      padding: "10px",
+      cursor: "pointer",
+      border: "1px solid black",
+      borderRadius: "0",
+      marginTop: "10px"
+    },
+    tabButton: (active) => ({
+      marginRight: "10px",
+      padding: "10px",
+      cursor: "pointer",
+      border: "1px solid black",
+      borderRadius: "0",
+      background: active ? "#ddd" : "#fff"
+    }),
+    table: {
+      width: "100%",
+      borderCollapse: "collapse",
+      marginBottom: "10px"
+    },
+    tableCell: {
+      border: "1px solid black",
+      padding: "5px"
+    }
+  };
+
+  return (
+    <div style={styles.container}>
+      {/* Sidebar */}
+      <div style={styles.sidebar}>
+        <h2>Selection Options</h2>
+        <div style={{ marginBottom: "20px" }}>
+          <label><strong>Select PDFs (choose at least 1):</strong></label>
+          <br />
+          <select multiple value={selectedPdfs} onChange={handlePdfSelection} style={{ width: "100%", height: "150px" }}>
+            {availablePdfs.map(pdf => (
+              <option key={pdf} value={pdf}>{pdf}</option>
+            ))}
+          </select>
+        </div>
+        <div style={{ marginBottom: "20px" }}>
+          <label><strong>Select Themes (choose up to 5):</strong></label>
+          <br />
+          <select multiple value={selectedThemes} onChange={handleThemeSelection} style={{ width: "100%", height: "150px" }}>
+            {predefinedThemes.map(theme => (
+              <option key={theme} value={theme}>{theme}</option>
+            ))}
+          </select>
+        </div>
+        {error && <div style={{ color: "red", marginBottom: "10px" }}>{error}</div>}
+        <button onClick={processPdfs} disabled={processing} style={styles.button}>
+          {processing ? "Processing..." : "Submit"}
+        </button>
+      </div>
+
+      {/* Main Content */}
+      <div style={styles.main}>
+        {/* Tabs */}
+        <div style={{ marginBottom: "20px" }}>
+          <button onClick={() => setActiveTab("results")} style={styles.tabButton(activeTab === "results")}>
+            Results
+          </button>
+          <button onClick={() => setActiveTab("logs")} style={styles.tabButton(activeTab === "logs")}>
+            Logs
+          </button>
+        </div>
+
+        {/* Results Tab */}
+        {activeTab === "results" && (
+          <div>
+            <h2>PDF Results and Quote Approval</h2>
+            {Object.keys(results).length === 0 ? (
+              <p>Results will appear here after processing is complete.</p>
+            ) : (
+              Object.keys(results).map(pdf => (
+                <div key={pdf} style={{ marginBottom: "30px" }}>
+                  <h3>Results for {pdf}</h3>
+                  {Object.keys(results[pdf]).map(theme => (
+                    <div key={theme} style={{ marginBottom: "20px" }}>
+                      <h4>Theme: {theme}</h4>
+                      <table style={styles.table}>
+                        <tbody>
+                          {results[pdf][theme].map((quote, i) => (
+                            <tr key={i} style={{ backgroundColor: i % 2 === 0 ? "#ffffff" : "#f0f0f0" }}>
+                              <td style={{ ...styles.tableCell, width: "5%", textAlign: "center" }}>
+                                <input
+                                  type="checkbox"
+                                  onChange={(e) => handleCheckboxChange(pdf, theme, quote, e.target.checked)}
+                                />
+                              </td>
+                              <td style={styles.tableCell}>
+                                {quote}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <button
+                        onClick={() => handleResubmit(pdf, theme)}
+                        style={{ ...styles.button, width: "auto" }}
+                      >
+                        Resubmit Approved Quotes for {pdf} - {theme}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Logs Tab */}
+        {activeTab === "logs" && (
+          <div>
+            <h2>Processing Logs</h2>
+            <pre style={{ background: "#eee", padding: "10px", border: "1px solid black", borderRadius: "0" }}>
+              {logs.join("\n")}
+            </pre>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default App;
