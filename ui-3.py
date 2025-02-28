@@ -172,29 +172,19 @@ with tabs[1]:
         st.info("Logs will appear here once processing starts.")
 
 with tabs[2]:
-    st.header("Summary Grid")
-    if st.session_state.approved_quotes:
-        # Determine all unique themes across PDFs
-        all_themes = set()
-        for pdf, theme_dict in st.session_state.approved_quotes.items():
-            for theme in theme_dict.keys():
-                all_themes.add(theme)
-        all_themes = sorted(list(all_themes))
+    st.header("Summary Grid Example")
+    # Define 5 companies and 5 themes for the dummy summary
+    companies = ["Company A", "Company B", "Company C", "Company D", "Company E"]
+    themes = ["Theme 1", "Theme 2", "Theme 3", "Theme 4", "Theme 5"]
 
-        # Build a dictionary for the summary grid: rows are themes, columns are PDF names (companies)
-        grid_data = {}
-        for theme in all_themes:
-            row = {}
-            for pdf in st.session_state.approved_quotes.keys():
-                # Get approved quotes for this theme in this pdf
-                quotes = st.session_state.approved_quotes[pdf].get(theme, [])
-                # Join multiple quotes with a line break for clarity
-                row[pdf] = "<br>".join(quotes) if quotes else ""
-            grid_data[theme] = row
+    # Create a dummy grid data: each cell contains a dummy quote for the given company and theme.
+    grid_data = {}
+    for theme in themes:
+        row = {}
+        for company in companies:
+            row[company] = f"Dummy Quote for {company} on {theme}"
+        grid_data[theme] = row
 
-        # Create a DataFrame where the index is theme and columns are PDF names (companies)
-        df = pd.DataFrame.from_dict(grid_data, orient='index')
-        # Display the grid as an HTML table (allowing HTML for line breaks)
-        st.write(df.to_html(escape=False), unsafe_allow_html=True)
-    else:
-        st.info("Summary grid will appear here after quotes have been approved.")
+    # Build the DataFrame with themes as rows and companies as columns
+    df = pd.DataFrame.from_dict(grid_data, orient='index')
+    st.write(df.to_html(escape=False, index=True), unsafe_allow_html=True)
