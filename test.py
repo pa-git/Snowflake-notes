@@ -1,177 +1,50 @@
-text_reviewer:
-  role: >
-    Text Reviewer and Formatter for Contract Information
-  goal: >
-    Review the extracted text provided from PDFs containing images,
-    ensuring that OCR-extracted text—especially from tables—is reformatted
-    to be coherent and logically organized.
-  backstory: >
-    You receive text extracted from PDF files containing images. Some of the text you receive
-    has been extracted using OCR from images of tables showing services and rates. That text may
-    seem incoherent since text that was in different table columns will appear side by side and
-    text that was in the same table cell but on two lines will appear beside other text. This is
-    why some sections of the extracted text provided to you may seem incoherent. You are experienced
-    in identifying and correcting these formatting issues, particularly with text extracted from
-    images and tables. Your expertise ensures that the contract information is clear and logically organized.
-  llm: openai/gpt-4o-mini
+import cv2
+import numpy as np
+import pytesseract
 
-text_analyzer:
-  role: >
-    Contract Information Analyzer
-  goal: >
-    Analyze the reviewed text to extract all relevant contract details, including the nature of the service,
-    skills provided, rates or unit price, rates by skills and location, conditions, responsibilities,
-    delivery model, term, duration, and any other pertinent information. Output the data as JSON.
-  backstory: >
-    With a keen analytical mind, you excel at parsing complex contract language into structured data,
-    ensuring that every essential detail is captured accurately.
-  llm: openai/gpt-4o-mini
+def preprocess_image(image_path):
+    # Load image in grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
-json_reviewer:
-  role: >
-    JSON Validator and Reviewer for Contract Information
-  goal: >
-    Validate and cross-check the JSON output against the reviewed text to ensure that no details were omitted
-    or misinterpreted, and produce a final, verified JSON object.
-  backstory: >
-    Your meticulous review process guarantees that the extracted data is complete and accurate,
-    providing a reliable final JSON representation of the contract details.
-  llm: openai/gpt-4o-mini
+    # Step 1: Denoising
+    image = cv2.fastNlMeansDenoising(image, h=30)
 
-markdown_generator:
-  role: >
-    Markdown Report Generator for Contract Information
-  goal: >
-    Convert the final JSON into a clear, well-organized markdown table, including a summary section at the top
-    that highlights the key contract details.
-  backstory: >
-    You are skilled at transforming structured data into concise and visually appealing markdown reports that
-    effectively communicate complex contract information.
-  llm: openai/gpt-4o-mini
+    # Step 2: Detect potential white text on light background
+    blurred = cv2.GaussianBlur(image, (5, 5), 0)
+    _, binary_inv = cv2.threshold(blurred, 180, 255, cv2.THRESH_BINARY_INV)  # Detect light areas
 
+    # Step 3: Invert regions with low contrast (i.e., potential headers)
+    mask = binary_inv  # Areas where text might be white
+    inverted = cv2.bitwise_not(image)  # Invert the whole image
+    image[mask == 255] = inverted[mask == 255]  # Apply inversion only where needed
 
+    # Step 4: Contrast Enhancement
+    image = cv2.equalizeHist(image)
 
+    # Step 5: Adaptive Thresholding (Binarization)
+    image = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                  cv2.THRESH_BINARY, 11, 2)
 
+    return image
 
+def extract_text(image):
+    # Configure Tesseract for better table recognition
+    custom_config = r'--oem 3 --psm 6'  # psm 6 treats the image as a block of text
+    text = pytesseract.image_to_string(image, config=custom_config)
+    
+    return text
 
+def main(image_path):
+    preprocessed_image = preprocess_image(image_path)
+    
+    # Save the processed image for debugging
+    cv2.imwrite("processed_image.png", preprocessed_image)
 
+    extracted_text = extract_text(preprocessed_image)
 
+    print("Extracted Text:")
+    print(extracted_text)
 
-review_text:
-  description: >
-    Review the provided extracted text from the PDF. Reformat any portions that originate from data tables so that the text becomes coherent and accurately represents the original content.
-  expected_output: >
-    Reviewed text with improved formatting, particularly for sections that were originally in tables.
-  agent: text_reviewer
-
-analyze_text:
-  description: >
-    Analyze the reviewed text to extract all relevant contract details. Pay close attention to the nature of the service, skills provided, rates or unit price, rates by skills and location, conditions, responsibilities, delivery model, term, duration, and any other pertinent details.
-  expected_output: >
-    A JSON object containing all the extracted contract details.
-  agent: text_analyzer
-  context:
-    - review_text
-
-review_json:
-  description: >
-    Review the JSON output from the analysis and compare it with the reviewed text to ensure that all contract details are accurately captured. Correct any discrepancies to produce a final, verified JSON.
-  expected_output: >
-    A final, verified JSON object containing complete contract information.
-  agent: json_reviewer
-  context:
-    - review_text
-    - analyze_text
-
-generate_markdown:
-  description: >
-    Convert the final JSON into a markdown table that organizes all the contract details. Include a summary section at the top that highlights the key information from the contract.
-  expected_output: >
-    A markdown document with a summary section and a detailed table presenting all the contract information.
-  agent: markdown_generator
-  context:
-    - review_json
-
-
-
-
-
-
-
-
-# src/contract_analyst_crew/crew.py
-from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, crew, task
-
-@CrewBase
-class ContractAnalystCrew():
-    """Crew for analyzing contract information and generating a markdown report."""
-
-    @agent
-    def text_reviewer(self) -> Agent:
-        return Agent(
-            config=self.agents_config['text_reviewer'],
-            verbose=True
-        )
-
-    @agent
-    def text_analyzer(self) -> Agent:
-        return Agent(
-            config=self.agents_config['text_analyzer'],
-            verbose=True
-        )
-
-    @agent
-    def json_reviewer(self) -> Agent:
-        return Agent(
-            config=self.agents_config['json_reviewer'],
-            verbose=True
-        )
-
-    @agent
-    def markdown_generator(self) -> Agent:
-        return Agent(
-            config=self.agents_config['markdown_generator'],
-            verbose=True
-        )
-
-    @task
-    def review_text(self) -> Task:
-        return Task(
-            config=self.tasks_config['review_text']
-        )
-
-    @task
-    def analyze_text(self) -> Task:
-        return Task(
-            config=self.tasks_config['analyze_text']
-        )
-
-    @task
-    def review_json(self) -> Task:
-        return Task(
-            config=self.tasks_config['review_json']
-        )
-
-    @task
-    def generate_markdown(self) -> Task:
-        return Task(
-            config=self.tasks_config['generate_markdown'],
-            output_file='output/contract_report.md'
-        )
-
-    @crew
-    def crew(self) -> Crew:
-        """Creates the Contract Analyst Crew for processing and reporting contract details."""
-        return Crew(
-            agents=self.agents,
-            tasks=self.tasks,
-            process=Process.sequential,
-            verbose=True,
-        )
-
-
-
-
-
-
+if __name__ == "__main__":
+    image_path = "table_image.jpg"  # Change this to your actual image path
+    main(image_path)
