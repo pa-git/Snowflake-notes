@@ -1,0 +1,42 @@
+markdown_report_creator:
+  role: "Markdown Report Specialist for Contract Summaries"
+  goal: "Transform structured contract data from JSON into clear, retrieval-optimized Markdown reports suitable for semantic search and embeddings generation."
+  backstory: "You have extensive experience crafting Markdown documentation designed specifically for embedding-based retrieval systems. Your methodical approach ensures each document is self-contained, clearly structured, and highly effective for semantic search tasks."
+
+create_markdown_report:
+  description: >
+    Generate a detailed Markdown report from the consolidated JSON object containing the contract information. Follow these precise guidelines:
+
+    1. **Clear Structure**:  
+       - Use concise and informative headings (`#`, `##`, `###`) to reflect the hierarchy of content.
+       - Each heading must clearly summarize the content beneath it.
+
+    2. **Content Granularity**:  
+       - Divide the content into logical sections, each clearly representing a single coherent topic or subtopic.
+       - Ensure paragraphs focus exclusively on one central idea each.
+
+    3. **Bullet Points and Lists**:  
+       - Employ bullet points (`-`) or numbered lists (`1.`, `2.`, `3.`) for clear representation of sequences, steps, or enumerations.
+
+    4. **Tables**:  
+       - Represent structured data, such as rates, skills, pricing by location, or conditions, using Markdown tables to enhance readability.
+
+    5. **Important Concepts and Terms**:  
+       - Bold (`**bold text**`) key concepts, critical terms, or phrases that clearly capture the essence of the content.
+       - Avoid unnecessary formatting such as italics or underlines.
+
+    6. **Self-contained Information**:  
+       - Ensure the Markdown document clearly provides necessary context without assuming prior knowledge or external references.
+
+    7. **Consistency and Conciseness**:  
+       - Maintain consistent terminology and phrasing throughout the document.
+       - Avoid redundant or verbose phrasing to minimize noise and maximize informational value.
+
+    Input:
+      - Consolidated JSON object from the `consolidate_json` task.
+
+  expected_output: >
+    A well-structured, concise, and retrieval-optimized Markdown report clearly summarizing the contract details.
+  agent: markdown_report_creator
+  context:
+    - consolidate_json
