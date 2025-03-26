@@ -1,0 +1,2 @@
+expected_output: >
+  A final, verified and consolidated JSON object containing complete contract information. Format the JSON with proper indentation (pretty-printed) for readability. You MUST only respond with the JSON and nothing else. Do not include triple backticks and ```json``` and ``` in your response.
