@@ -1,0 +1,14 @@
+-- Table: users
+-- Columns:
+--   id INT PRIMARY KEY
+--   name TEXT
+--   age INT
+--   country TEXT -- possible values: 'Canada', 'USA', 'UK'
+
+-- Table: orders
+-- Columns:
+--   order_id INT PRIMARY KEY
+--   user_id INT -- foreign key to users.id
+--   total_amount FLOAT
+--   status TEXT -- possible values: 'pending', 'shipped', 'cancelled'
+--   order_date DATE
