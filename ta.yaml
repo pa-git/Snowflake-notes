@@ -1,0 +1,99 @@
+analyze_user_input:
+  description: >
+    Given the user question and the metadata provided, determine which of the three possible situations the user request falls under. Clearly outline what the user is asking for.
+    
+    # Rules:
+    **You MUST always follow these rules**:
+    - NEVER make assumptions. If anything is unclear, ask the user for clarification.
+    - ONLY use the metadata provided.
+    - NEVER invent table names or column names that are not explicitly present in the metadata.
+
+    # Metadata:
+    ```{metadata}```
+
+    # User question:
+    ```{user_question}```
+
+    # Possible use cases:
+    There are three distinct use cases. You must categorize the user question as one of the following:
+
+    1. **General question**
+       - The user is asking about the structure, contents, or possibilities offered by the data.
+       - No query is needed to answer the question.
+       - Response format:
+         - Use case: General question
+         - Answer: A direct answer to the user's question.
+
+    2. **Data question**
+       - The user is asking for specific information that must be retrieved by querying the data.
+       - Response format:
+         - Use case: Data question
+         - User intent: A clear and detailed restatement of what the user wants.
+         - Required table(s) and column(s): List of relevant tables and columns from the metadata.
+         - Joins: Description of required joins between tables, if any.
+         - Filters: Description of filters needed, based only on metadata.
+         - Aggregations: Description of any aggregations needed (sum, average, etc.).
+
+    3. **Scenario question**
+       - The user is asking a hypothetical or “what if” question involving comparisons between multiple scenarios.
+       - Response format:
+         - Use case: Scenario question
+         - Change: Repeat this section for each change described in the user input.
+           - Change type: Increase or decrease
+           - Change unit: Unit or percentage
+           - Change quantity: The value of the change
+           - Organization: The level of the organization affected (e.g., Super division, Division, Department, Cost Center)
+           - Resources: The human resources affected (e.g., Employee, Contingent, VP, ED)
+           - Location: The location affected (e.g., High-cost, specific cities)
+
+    **Important: You MUST always follow these rules**:
+    - NEVER make assumptions. Ask for clarifications if needed.
+    - ONLY rely on the metadata provided.
+    - NEVER fabricate or infer column or table names not present in the metadata.
+
+  expected_output: >
+    A markdown-formatted response that clearly classifies the user question into one of the three use cases and includes all required structured details (e.g., Use case, Answer, or User intent, Required table(s) and column(s), Joins, Filters, Aggregations, or detailed Change information) based solely on the provided metadata.
+  agent: senior_analyst
+
+build_query:
+  description: >
+    Using the detailed user intent and metadata, construct the required SQL query following the steps below.
+
+    # Metadata:
+    ```{metadata}```
+
+    # Follow these steps:
+    1. Understand the user intent from the prior analysis.
+    2. Determine if joins are required; specify the type (INNER JOIN, LEFT JOIN, etc.).
+    3. Identify filters needed. Only use sample values from metadata—do NOT invent values.
+    4. Decide which columns to include in the SELECT clause.
+    5. Assemble the full query string.
+
+  expected_output: >
+    A syntactically correct SQL query string in the {dialect} SQL dialect, enclosed in a single code block.
+  agent: query_builder
+  context: analyze_user_input
+
+review_execute_query:
+  description: >
+    Based on the metadata and previous steps, validate and execute the query.
+
+    # Metadata:
+    ```{metadata}```
+
+    # Steps:
+    1. Understand the metadata.
+    2. Review details from the senior_analyst.
+    3. Validate that the query matches the user intent and adheres to metadata.
+    4. Confirm that all table and column names match exactly with the metadata.
+    5. Ensure all filters use sample values listed in the metadata.
+    6. Finalize and execute the query using the query_data tool.
+
+    After running the query:
+    - If the query returns errors, analyze and revise accordingly.
+    - If the query succeeds, return the results formatted as a Markdown table.
+
+  expected_output: Formatted data table (Markdown)
+  agent: query_reviewer_executer
+  tools: [query_data]
+  context: [analyze_user_input, build_query]
