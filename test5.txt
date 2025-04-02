@@ -1,0 +1,1 @@
+6. If using the Snowflake SQL dialect, ensure that every table reference includes both the schema and table names in the format SCHEMA.TABLE (e.g., SELECT * FROM SCHEMA.TABLE).
