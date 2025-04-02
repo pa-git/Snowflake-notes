@@ -1,0 +1,159 @@
+{
+    "contract_metadata": {
+        "file_name": "Unified_Managed_Services_Contract_v5",
+        "type": "Purchase order",
+        "summary_description": "This schedule outlines the engagement between ClientGlobal Inc. and VendorTech Ltd. for consulting, testing, and QA automation services related to contact center modernization. It includes project scope, named personnel, service levels, and financial terms applicable from 2025 through 2026.",
+        "start_date": "2025-02-01",
+        "end_date": "2026-04-30",
+        "condition": "Expires when allocated days used or by end date"
+    },
+    "financials": {
+        "base_fee": "USD 499,422",
+        "adjusted_total_fee": "USD 2,167,209",
+        "fee_breakdown": [
+          { "event": "Delivery milestone 1", "fee" : "USD 997,668" }
+        ],
+        "excludes": [
+          "Travel expenses",
+          "Applicable VAT"
+        ],
+        "payment_terms": "As stated in the agreement",
+        "billing_instructions": "Reference client-provided PO",
+        "exceptions_or_notes": [
+          "One-time pricing applied to project manager role",
+          "Fees exclude applicable VAT as per contract"
+        ]
+    },
+    "services": [
+      {
+        "name": "Consulting Engineer (CE)",
+        "details": "MongoDB support and operations advisory",
+        "period": "Feb 1, 2025 - Apr 30, 2026",
+        "coverage": "Scheduled days",
+        "locations": [
+          "Remote",
+          "Onsite"
+        ],
+        "days": 32,
+        "quantity": 15,
+        "unit_price": "USD 2,500.00",
+        "total": "USD 80,000.00",
+        "notes": "One-time exception"
+      }
+    ],
+    "roles": [
+      {
+        "resource_name": "John Smith",
+        "role_name": "Test Lead (Offshore)",
+        "description": "Leads offshore testing team; coordinates testing efforts and defect triage.",
+        "level": "Intermediate",
+        "location": "India",
+        "hours_committed": 504,
+        "rate": {
+          "amount": 43.7,
+          "currency": "USD",
+          "unit": "hour"
+        },
+        "total_fees": 22025,
+        "billing_type": "Time & Materials",
+        "schedule_reference": "Schedule A",
+        "project": "Project name"
+      }
+    ],
+    "service_level_agreements": [
+      {
+        "name": "Attrition Rate",
+        "description": "Voluntary monthly attrition rate for vendor personnel",
+        "target": "<= 3%",
+        "metric": "Monthly consultant attrition",
+        "unit": "percentage",
+        "frequency": "Monthly",
+        "applies_to_services": [
+          "Service A"
+        ],
+        "penalty_clause": "Yes",
+        "enforcement_method": "Reported monthly by vendor HR with audit log"
+      }
+    ],
+    "divisions": [
+      {
+        "name": "Capital Markets",
+        "description": "Division handling trading, exchanges, and market infrastructure"
+      }
+    ],
+    "initiatives": [
+      {
+        "name": "Contact Center Transformation",
+        "description": "Modernizing client-facing communication systems"
+      }
+    ],
+    "projects": [
+      {
+        "name": "Unified QA Testing Initiative",
+        "description": "End-to-end testing support for Contact Center platform, including automation and regression testing.",
+        "start_date": "2024-04-15",
+        "end_date": "2024-06-30",
+        "division": "Division name",
+        "initiative": "Initiative name",
+        "status": "Active"
+      }
+    ],
+    "signatures": [
+      {
+        "type": "consultant",
+        "name": "David Example",
+        "title": "Partner",
+        "date": "2025-02-26"
+      }
+    ],
+    "reporting_and_governance": {
+      "reports": ["Weekly summaries"],
+      "meetings": ["Monthly engagement updates"]
+    },
+    "engagement_scope": {
+      "core_applications": [
+        "Connect Desktop",
+        "Salesforce CC"
+      ],
+      "supporting_applications": [
+        "PAVE",
+        "3Dieb",
+        "AIEQ5"
+      ],
+      "key_activities": [
+        "Test Planning",
+        "Governance Support"
+      ],
+      "assumptions": [
+        "Vendor supervised by client",
+        "Client provides access/resources"
+      ],
+      "expectations": [
+        "Provide access to necessary systems and resources.",
+        "Coordinate and schedule relevant meetings with agendas.",
+        "Personnel unavailability due to unforeseen circumstances",
+        "Advance notice of 10 business days preferred"
+      ],
+      "special_conditions": [
+        "Services for ClientGlobal only",
+        "Non-signing affiliates hold no liability",
+        "Independence from audit clients maintained"
+      ]
+    },
+    "deliverables_and_invoices": [
+      {
+        "deliverable": "Sprint session participation",
+        "delivery_date": "2025-05-09",
+        "invoice_amount_usd": 41619,
+        "percentage": 8.33
+      }
+    ],
+    "parties": [
+      {
+        "type": "client",
+        "name": "ClientGlobal Inc.",
+        "address": "10 Main Avenue, Capital City, ST 99999",
+        "context": "Mexico-only service scope"
+      }
+    ]
+  }
