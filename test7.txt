@@ -1,0 +1,27 @@
+{
+  "General question": {
+    "use_case": "General question",
+    "answer": "A direct answer to the user's question."
+  },
+  "Data question": {
+    "use_case": "Data question",
+    "user_intent": "A clear and detailed restatement of what the user wants.",
+    "required_tables_and_columns": "List of relevant tables and columns from the metadata.",
+    "joins": "Description of required joins between tables, if any.",
+    "filters": "Description of filters needed, based only on metadata.",
+    "aggregations": "Description of any aggregations needed (sum, average, etc.)."
+  },
+  "Scenario question": {
+    "use_case": "Scenario question",
+    "changes": [
+      {
+        "change_type": "Increase or decrease",
+        "change_unit": "Unit or percentage",
+        "change_quantity": "The value of the change",
+        "organization": "The level of the organization affected (e.g., Super division, Division, Department, Cost Center)",
+        "resources": "The human resources affected (e.g., Employee, Contingent, VP, ED)",
+        "location": "The location affected (e.g., High-cost, specific cities)"
+      }
+    ]
+  }
+}
