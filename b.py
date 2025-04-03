@@ -5,14 +5,6 @@ from crewai.project import CrewBase, agent, crew, task
 from crewai_tools import AskUserTool
 
 # https://docs.crewai.com/how-to/conditional-tasks#conditional-tasks
-
-def is_general(output: TaskOutput) -> bool:
-    return not output.pydantic.get("is_general")
-def is_data(output: TaskOutput) -> bool:
-    return not output.pydantic.get("is_data")
-def is_scenario(output: TaskOutput) -> bool:
-    return not output.pydantic.get("is_scenario")
-
 def is_general(output: TaskOutput) -> bool:
     return output.pydantic.get("use_case_id") == "general"
 def is_data(output: TaskOutput) -> bool:
