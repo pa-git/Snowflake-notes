@@ -12,7 +12,7 @@ class UserIntentAnalysisCrew():
   def senior_analyst(self) -> Agent:
     return Agent(
       config=self.agents_config['senior_analyst'],
-      tools=[AskUserTool()],
+      tools=[AskUserTool],
       verbose=True
     )
 
@@ -26,21 +26,24 @@ class UserIntentAnalysisCrew():
   def general_question_task(self) -> Task:
     return Task(
       config=self.tasks_config['general_question_task'],
-      context=[self.identify_use_case_task()]
+      condition=is_general,
+      context=[identify_use_case_task]
     )
 
   @task
   def data_question_intent_task(self) -> Task:
     return Task(
       config=self.tasks_config['data_question_intent_task'],
-      context=[self.identify_use_case_task()]
+      condition=is_data,
+      context=[identify_use_case_task]
     )
 
   @task
   def scenario_question_intent_task(self) -> Task:
     return Task(
       config=self.tasks_config['scenario_question_intent_task'],
-      context=[self.identify_use_case_task()]
+      condition=is_scenario,
+      context=[identify_use_case_task]
     )
 
   @crew
