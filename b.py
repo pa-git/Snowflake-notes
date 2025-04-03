@@ -12,7 +12,14 @@ def is_data(output: TaskOutput) -> bool:
     return not output.pydantic.get("is_data")
 def is_scenario(output: TaskOutput) -> bool:
     return not output.pydantic.get("is_scenario")
-  
+
+def is_general(output: TaskOutput) -> bool:
+    return output.pydantic.get("use_case_id") == "general"
+def is_data(output: TaskOutput) -> bool:
+    return output.pydantic.get("use_case_id") == "data"
+def is_scenario(output: TaskOutput) -> bool:
+    return output.pydantic.get("use_case_id") == "scenario"
+    
 @CrewBase
 class UserIntentAnalysisCrew():
   """Crew to classify and structure user intent using metadata"""
