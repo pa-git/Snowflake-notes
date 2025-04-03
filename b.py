@@ -4,6 +4,15 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from crewai_tools import AskUserTool
 
+# https://docs.crewai.com/how-to/conditional-tasks#conditional-tasks
+
+def is_general(output: TaskOutput) -> bool:
+    return not output.pydantic.get("required_tables_and_columns")
+def is_data(output: TaskOutput) -> bool:
+    return not output.pydantic.get("required_tables_and_columns")
+def is_scenario(output: TaskOutput) -> bool:
+    return not output.pydantic.get("required_tables_and_columns")
+  
 @CrewBase
 class UserIntentAnalysisCrew():
   """Crew to classify and structure user intent using metadata"""
