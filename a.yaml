@@ -1,0 +1,85 @@
+identify_use_case_task:
+  description: >
+    Analyze the user question, metadata, and conversation history to determine
+    which of the three possible use cases it falls under:
+    1) General question
+    2) Data question
+    3) Scenario question
+
+    You MUST NOT make assumptions. If anything is unclear, you MUST use the `ask_question` tool
+    to clarify the user intent before proceeding. Only rely on the metadata provided.
+  expected_output: >
+    {
+      "use_case_id": "general | data | scenario | unclear",
+      "use_case": "General question | Data question | Scenario question | Requires clarifications"
+    }
+  agent: senior_analyst
+
+general_question_task:
+  description: >
+    Based on the provided metadata, respond to general questions about
+    the structure, content, or metadata itself.
+
+    No query or data retrieval is required.
+
+    You MUST NOT fabricate or infer any column or table names not present in metadata.
+    Use the `ask_question` tool if the user input is ambiguous or contradictory.
+  expected_output: >
+    {
+      "use_case_id": "general",
+      "use_case": "General question",
+      "answer": "A direct answer to the user's question."
+    }
+  agent: senior_analyst
+
+data_question_intent_task:
+  description: >
+    If the question is a data question, extract the user's intent and provide a structured breakdown including:
+    - user intent (clear restatement)
+    - required tables and columns from metadata
+    - joins needed
+    - filters to apply
+    - aggregations needed
+
+    You MUST use the `ask_question` tool to clarify any part of the question that is ambiguous
+    or not explicitly described in the metadata. NEVER make assumptions.
+  expected_output: >
+    {
+      "use_case_id": "data",
+      "use_case": "Data question",
+      "user_intent": "...",
+      "required_tables_and_columns": "...",
+      "joins": "...",
+      "filters": "...",
+      "aggregations": "..."
+    }
+  agent: senior_analyst
+
+scenario_question_intent_task:
+  description: >
+    If the question is a scenario question, extract and organize all the scenario change components:
+    - change type
+    - unit
+    - value
+    - affected org level
+    - resources
+    - location
+
+    Use the `ask_question` tool if any scenario component is missing or unclear. 
+    Do not proceed with assumptions. Work strictly from user input and metadata.
+  expected_output: >
+    {
+      "use_case_id": "scenario",
+      "use_case": "Scenario question",
+      "changes": [
+        {
+          "change_type": "...",
+          "change_unit": "...",
+          "change_quantity": "...",
+          "organization": "...",
+          "resources": "...",
+          "location": "..."
+        }
+      ]
+    }
+  agent: senior_analyst
