@@ -7,11 +7,11 @@ from crewai_tools import AskUserTool
 # https://docs.crewai.com/how-to/conditional-tasks#conditional-tasks
 
 def is_general(output: TaskOutput) -> bool:
-    return not output.pydantic.get("required_tables_and_columns")
+    return not output.pydantic.get("is_general")
 def is_data(output: TaskOutput) -> bool:
-    return not output.pydantic.get("required_tables_and_columns")
+    return not output.pydantic.get("is_data")
 def is_scenario(output: TaskOutput) -> bool:
-    return not output.pydantic.get("required_tables_and_columns")
+    return not output.pydantic.get("is_scenario")
   
 @CrewBase
 class UserIntentAnalysisCrew():
@@ -36,6 +36,7 @@ class UserIntentAnalysisCrew():
     return Task(
       config=self.tasks_config['general_question_task'],
       condition=is_general,
+      async_execution=True,
       context=[identify_use_case_task]
     )
 
@@ -44,6 +45,7 @@ class UserIntentAnalysisCrew():
     return Task(
       config=self.tasks_config['data_question_intent_task'],
       condition=is_data,
+      async_execution=True,
       context=[identify_use_case_task]
     )
 
@@ -52,6 +54,7 @@ class UserIntentAnalysisCrew():
     return Task(
       config=self.tasks_config['scenario_question_intent_task'],
       condition=is_scenario,
+      async_execution=True,
       context=[identify_use_case_task]
     )
 
