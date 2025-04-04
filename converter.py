@@ -1,3 +1,5 @@
+import json
+
 def json_to_full_markdown_contract(data: dict) -> str:
     def section(title: str) -> str:
         return f"\n## {title}\n"
@@ -75,6 +77,11 @@ def json_to_full_markdown_contract(data: dict) -> str:
 
     return markdown
 
-# Apply the full converter to the same JSON data
-full_markdown_output = json_to_full_markdown_contract(parsed)
-print(full_markdown_output[:1000])  # Preview of the full Markdown
+
+if __name__ == "__main__":
+    with open("sample_contract.json", "r") as f:
+        contract_data = json.load(f)
+    markdown = json_to_full_markdown_contract(contract_data)
+    with open("contract_report.md", "w") as f:
+        f.write(markdown)
+    print("✅ Markdown report generated: contract_report.md")
