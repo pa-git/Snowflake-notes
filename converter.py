@@ -1,3 +1,5 @@
+Condense the text by removing unnecessary content, while preserving all relevant contractual information, to reduce token usage for the next step.
+
 import json
 
 def json_to_full_markdown_contract(data: dict) -> str:
