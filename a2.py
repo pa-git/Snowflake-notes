@@ -25,7 +25,8 @@ extract_services_and_roles:
     **Important**:
     - You MUST not invent any information that is not explicitly provided.
     - Under `services`, extract descriptions, coverage, pricing, and periods.
-    - Under `roles`, exclude personal names. Only include role descriptions, locations, hours, and billing.
+       - Under `roles`, include every available field such as `role_name`, `resource_name`, `description`, `location`, `level`, `hours_committed`, `rate`, `billing_type`, `schedule_reference`, `total_fees`, and `project`.
+
 
     Inputs:
     - Text received from the previous task
