@@ -39,7 +39,8 @@ def process_pdf_files(folder_path, markdown_folder="markdown"):
         if file.lower().endswith('.pdf'):
             base_name = os.path.splitext(file)[0]
             if base_name in md_basenames:
-                continue  # Skip if a matching .md file exists
+                log_file.write(f"[SKIPPED] {file} — matching .md exists\n")
+                continue
 
             file_path = os.path.join(folder_path, file)
             if os.path.isfile(file_path):
