@@ -14,7 +14,7 @@ contract_assistant_task = Task(
         - source: a contract name (e.g., "Unified_Managed_Services_Contract_v5")
         - section: a section within the contract (e.g., "services", "financials")
 
-        You may use any combination of these inputs, but at least one must be provided. The tool supports the following behavior:
+        You may use any combination of these inputs, but at least one must be provided. The tool behaves as follows:
 
         | Inputs Provided            | Behavior                                                |
         |----------------------------|---------------------------------------------------------|
@@ -27,7 +27,10 @@ contract_assistant_task = Task(
         | query + source + section   | Search within the section of the specified contract     |
 
         Use the tool only if the question requires contract-specific information.
-        Do NOT use the tool if the user is greeting you or asking general questions like definitions.
+        Do NOT use the tool for greetings or general questions like definitions.
+
+        If the user question is vague or lacks context (e.g., doesn't specify the contract),
+        ask a clarifying question before calling the tool.
 
         Available contract sections include:
         - contract_metadata: Contract name, type, summary, start/end dates  
@@ -46,20 +49,22 @@ contract_assistant_task = Task(
 
         Examples of correct tool usage:
 
-        | User Question                                 | Action     | Inputs to Provide                              |
-        |----------------------------------------------|------------|------------------------------------------------|
-        | What are the payment terms?                  | Search     | query = "What are the payment terms?"          |
-        | Show me all financials in the Unified contract | Search     | source = "Unified_Managed_Services_Contract_v5", section = "financials" |
-        | List all services across contracts           | Search     | section = "services"                           |
-        | Who signed the agreement?                    | Search     | query = "Who signed the agreement?"            |
-        | Hi! or What is an SLA?                       | No search  | Respond without using the tool                 |
+        | User Question                                           | Action         | Inputs to Provide                                                |
+        |--------------------------------------------------------|----------------|------------------------------------------------------------------|
+        | What are the payment terms?                            | Search         | query = "What are the payment terms?"                            |
+        | Show me all financials in the Unified contract         | Search         | source = "Unified_Managed_Services_Contract_v5", section = "financials" |
+        | List all services across contracts                     | Search         | section = "services"                                             |
+        | Who signed the agreement for the Unified contract?     | Search         | query = "Who signed the agreement?", source = "Unified_Managed_Services_Contract_v5" |
+        | Who signed the agreement? (no source)                  | Clarify        | Ask: "Which contract are you referring to?"                      |
+        | Hi! or What is an SLA?                                 | No search      | Respond without using the tool                                   |
 
         Always use the correct filters and answer only if the information is in the contract data.
     """,
     expected_output="""
         A factual and grounded answer to the user's question using contract data.
-        If the tool is used, use the correct combination of filters.
-        If the answer is not available, reply with:
+        Use the search tool only when appropriate and with the correct filters.
+        If the user question is too vague (e.g., missing contract name), ask for clarification.
+        If the answer is not available, respond with:
         "That information is not available in the contract."
         Never generate answers based on external or assumed knowledge.
     """,
