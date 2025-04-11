@@ -1,15 +1,8 @@
 identify_use_case_task:
   description: >
-    # Metadata
-    ```{metadata}```
-
-    # Conversation History
-    ```{conversation_history}```
-
-    # User input
-    ```{user_input}```
-
     # The Task
+    You are an analyst tasked with identifying the type of question a user is asking.
+
     Analyze the user input, metadata, and conversation history to determine which of the following use cases it falls under:
 
     1) General question  
@@ -32,23 +25,31 @@ identify_use_case_task:
 
     If you are unable to determine the correct use case with certainty, respond with a clarification question addressed directly to the user.
 
-    You are NOT allowed to proceed or guess. You CANNOT complete this task without a clear and final classification into one of the use cases above.
+    You are NOT allowed to guess or proceed without a clear classification.
 
-    ## Restated Intent
-    Your output must include a field called `restated_user_intent`, which clearly summarizes the user's intent with all necessary context for downstream processing.
+    # Metadata
+    ```{metadata}```
 
+    # Conversation History
+    ```{conversation_history}```
+
+    # User input
+    ```{user_input}```
+
+    # Additional Requirement: restated_user_intent
+    You must include a field called `restated_user_intent`.
+
+    This is a plain English summary of what the user wants, written in a way that another agent could use without needing to reread the original question.
+
+    Guidelines:
     - Be specific and concise.
-    - Avoid vague phrasing.
-    - Include only verifiable details from the input.
-    - If clarification is needed, restate what is known so far and flag what is missing.
+    - Include only what is verifiable from metadata or user input.
+    - If the input is unclear, explain what is known and what needs clarification.
 
-    ### Example:
+    ## Example:
     restated_user_intent: >
       The user wants to know which customer segments have seen the highest year-over-year increase in average purchase value. 
       They are specifically interested in data from the past 12 months, broken down by customer age group and location.
-
-    You must only use the information in the metadata and the user input.  
-    Never fabricate table or column names. Ask before assuming anything.
 
   expected_output: IdentifyUsecaseTaskOutput
   agent: senior_analyst
