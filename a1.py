@@ -1,32 +1,48 @@
-scenario_question_intent_task:
-  description: >
-    Based on the metadata, the conversation history, and the user input, extract and organize all the scenario change components.
+from pydantic import BaseModel, Field
+from typing import Literal
 
-    This task represents a scenario question:
-    - The user is asking a hypothetical or “what if” question involving changes to organizational structure, headcount, or resource allocation.
-    - Set `use_case_id` to 'scenario'.
-    - Provide a clear restatement of the user intent in `user_intent`.
-    - Identify the following for each change described in the input:
-      - `change_type`: increase or decrease
-      - `change_unit`: unit of measure (e.g., %, FTE)
-      - `change_quantity`: numeric value of the change
-      - `organization`: level affected (e.g., Division, Department, Cost Center)
-      - `resources`: type of human resources involved
-      - `location`: the location(s) where the change applies
 
-    Do not proceed with assumptions. Use only what is explicitly present in the user input and metadata.
+class Drivers(BaseModel):
+    """Driver of change"""
 
-    If any required information is missing or unclear:
-    - Set `use_case_id` to 'clarification'.
-    - Set `clarification_question` to a clear clarification question directly addressed to the user.
+    transaction_type: Literal['increase', 'decrease'] = Field(
+        ..., description="Direction of the change"
+    )
 
-    If the scenario involves multiple changes (e.g., a reduction in one area and an increase in another), create a separate `Drivers` object for each change.
+    change_unit: Literal['percent', 'unit'] = Field(
+        ..., description="Unit used to express the change"
+    )
 
-    # Metadata
-    ```{metadata}```
+    change_quantity: int = Field(
+        ..., description="Quantity of the change (without unit), e.g., 10"
+    )
 
-    # Conversation History
-    ```{conversation_history}```
+    division: Literal[
+        'Cyber Data Risk & Resilience',
+        'ENTERPRISE TECH & SERVICES',
+        'Enterprise Tech & Svc ISGAlign',
+        'Fin-Risk-Prog & Prod Eng Tech',
+        'IM IT',
+        'Innovation',
+        'Institutional Securities Tech',
+        'Tech COO',
+        'WM Technology'
+    ] = Field(
+        ..., description="Division where the change applies"
+    )
 
-    # User Input
-    ```{user_input}```
+    resource_class: Literal['Permanent Employee', 'Contingent'] = Field(
+        ..., description="Type of human resource affected"
+    )
+
+    location: Literal['high', 'medium', 'low'] = Field(
+        ..., description="Location band impacted by the change"
+    )
+
+    year: int = Field(
+        ..., description="Year the change starts"
+    )
+
+    month: int = Field(
+        ..., description="Month the change starts"
+    )
