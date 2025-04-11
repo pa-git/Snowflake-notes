@@ -1,4 +1,4 @@
-identify_use_case_task:
+general_question_task:
   description: >
     # Metadata
     ```{metadata}```
@@ -6,36 +6,19 @@ identify_use_case_task:
     # Conversation History
     ```{conversation_history}```
 
-    # User input
-    ```{user_input}```
-
     # The Task
-    Analyze the user input, metadata, and conversation history to determine which of the following use cases it falls under:
+    Based on the metadata and the conversation history, respond directly to the user's question.
 
-    1) General question  
-       - use_case_id: 'general'  
-       - use_case: 'General question'
+    This task represents a general question:
+    - No query or data retrieval is required.
+    - Use only the context provided in the metadata and conversation history.
+    - Set `use_case_id` to 'general' and `use_case` to 'General question'.
 
-    2) Data question  
-       - use_case_id: 'data'  
-       - use_case: 'Data question'
+    Do not fabricate or infer any table or column names that are not explicitly present in the metadata.
 
-    3) Scenario question  
-       - use_case_id: 'scenario'  
-       - use_case: 'Scenario question'
+    If you are unable to provide a valid and confident answer:
+    - Ask a clarification question directly addressed to the user.
+    - In that case, set `use_case_id` to 'clarification' and `use_case` to 'Clarification question'.
 
-    4) Clarification question  
-       - use_case_id: 'clarification'  
-       - use_case: 'Clarification question'
-
-    You MUST classify the user input into one of these use cases.
-
-    If you are unable to determine the correct use case with certainty, respond with a clarification question addressed directly to the user.
-
-    You are NOT allowed to proceed or guess. You CANNOT complete this task without a clear and final classification into one of the use cases above.
-
-    You must only use the information in the metadata and the user input.  
-    Never fabricate table or column names. Ask before assuming anything.
-  
-  expected_output: IdentifyUsecaseTaskOutput
+  expected_output: GeneralQuestionTaskOutput
   agent: senior_analyst
