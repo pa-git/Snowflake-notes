@@ -1,17 +1,18 @@
-general_question_task:
+data_question_intent_task:
   description: >
-    Based on the metadata, the conversation history, and the context you have, respond to the user's question as explained in the `restated_user_intent`.
+    Based on the metadata, the conversation history, and the user input, extract the user’s intent and provide a structured breakdown of the data request.
 
-    This task represents a general question:
-    - No query or data retrieval is required.
-    - Use only the context provided in the metadata and conversation history.
-    - Set `use_case_id` to 'general' and return your response in the `answer` field.
+    This task represents a data question:
+    - The user is requesting specific information that requires querying one or more tables.
+    - Set `use_case_id` to 'data' and `use_case` to 'Data question'.
+    - Provide a clear restatement of the user intent in `user_intent`.
+    - Identify the relevant tables and columns using only what is explicitly present in the metadata.
+    - Include any required joins between tables.
+    - Specify any filters and aggregations mentioned or implied.
 
-    Do not fabricate or infer any table or column names that are not explicitly present in the metadata.
-
-    If you are unable to provide a valid and confident answer:
-    - Set `use_case_id` to 'clarification' and `use_case` to 'Clarification question'.
-    - Set `clarification_question` to a clear clarification question directly addressed to the user.
+    If any part of the question is ambiguous or not covered in the metadata:
+    - Use the `get_user_input` tool to ask a clarification question before proceeding.
+    - NEVER make assumptions or invent table or column names.
 
     # Metadata
     ```{metadata}```
