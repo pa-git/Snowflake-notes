@@ -1,3 +1,5 @@
-json_data = [c.model_dump() for c in self.state['identify_use_case_task'].pydantic.changes]
+import json
 
-json_data = [c.dict() for c in self.state['identify_use_case_task'].pydantic.changes]
+def get_scenarios() -> list[dict]:
+    with open("scenarios.jsonl", "r") as f:
+        return [json.loads(line) for line in f if line.strip()]
