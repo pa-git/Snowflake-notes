@@ -1,6 +1,3 @@
+json_data = [c.model_dump() for c in self.state['identify_use_case_task'].pydantic.changes]
 
-history = [
-    {"role": _["role"], "content": _["content"]}
-    for _ in history
-    if _["content"] and "|" not in _["content"]
-]
+json_data = [c.dict() for c in self.state['identify_use_case_task'].pydantic.changes]
