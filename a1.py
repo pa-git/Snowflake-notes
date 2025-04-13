@@ -1,9 +1,11 @@
-Got it. Here's the corrected version without any icons or fluff:
-
----
-
-The `ROSTER_HEADCOUNT` column contains monthly headcount snapshots. Each value represents the total number of employees at that specific point in time.
-
-Do not use `SUM(ROSTER_HEADCOUNT)` across multiple months. This will inflate the result because the same employees are counted once for each month they appear. For example, someone employed all year would be counted 12 times.
-
-If the goal is to get the current headcount, use only the most recent month's data. If the goal is to analyze trends, use averages or compare values month to month.
+| Group             | 2025 Current $ | 2025 Current HC | 2025 Final $ | 2025 Final HC | 2026 Current $ | 2026 Current HC | 2026 Final $ | 2026 Final HC | 2027 Final $ | 2027 Final HC | 2028 Final $ | 2028 Final HC |
+|------------------|----------------|------------------|--------------|----------------|----------------|------------------|--------------|----------------|--------------|----------------|--------------|----------------|
+| **IM IT**        | $275,000,000   | 23,100           | $274,000,000 | 23,050         | $30,600,000    | 2,570            | $29,100,000  | 2,486          | $0           | 0              | $0           | 0              |
+| Employees        | $149,000,000   | 11,700           | $148,000,000 | 11,740         | $16,600,000    | 1,310            | $15,100,000  | 1,226          | $0           | 0              | $0           | 0              |
+| Contingent       | $126,000,000   | 11,400           | $126,000,000 | 11,340         | $14,000,000    | 1,260            | $14,000,000  | 1,260          | $0           | 0              | $0           | 0              |
+| **Tech COO**     | $60,000,000    | 5,040            | $60,000,000  | 5,040          | $6,600,000     | 560              | $6,600,000   | 560            | $0           | 0              | $0           | 0              |
+| Employees        | $54,000,000    | 4,230            | $54,000,000  | 4,230          | $6,000,000     | 470              | $6,000,000   | 470            | $0           | 0              | $0           | 0              |
+| Contingent       | $6,000,000     | 810              | $6,000,000   | 810            | $630,000       | 90               | $630,000     | 90             | $0           | 0              | $0           | 0              |
+| **Innovation**   | $148,000,000   | 13,590           | $148,000,000 | 13,590         | $16,500,000    | 1,510            | $16,500,000  | 1,510          | $0           | 0              | $0           | 0              |
+| Employees        | $109,000,000   | 8,820            | $109,000,000 | 8,820          | $12,200,000    | 980              | $12,200,000  | 980            | $0           | 0              | $0           | 0              |
+| Contingent       | $38,000,000    | 4,770            | $38,000,000  | 4,770          | $4,300,000     | 530              | $4,300,000   | 530            | $0           | 0              | $0           | 0              |
