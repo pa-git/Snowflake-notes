@@ -1,0 +1,47 @@
+Slide 1: The Problem
+Speaker Notes:
+
+Let’s start with the problem.
+
+Throughout the year, the Investor Relations team has to go through dozens of earnings call transcripts and conference call notes. Why?
+To produce peer outlook and guidance commentary—documents that summarize what other players in the industry are saying about key themes.
+
+For example:
+What is JP Morgan saying about deposits and lending? What’s Goldman Sachs saying about expenses?
+
+Now imagine reading multiple 20-page transcripts, each filled with dense financial language, just to pull out a few relevant quotes.
+
+This process is not just tedious—it’s incredibly time-consuming. Hours and hours per document.
+
+Slide 2: The Solution
+Speaker Notes:
+
+This is where our new tool comes in—the Investor Relations Quote Tool.
+
+We built it closely with the IR team to solve this exact pain point.
+
+It’s a multi-agent GenAI system that reads these long transcripts for you and extracts the most relevant quotes around the themes you care about. What normally takes days, now takes minutes.
+
+Let me walk you through how it works.
+
+First, the user selects a transcript—let’s say the most recent earnings call.
+
+Then, they pick the themes they want to focus on—say "expenses" or "lending."
+
+Hit Submit.
+
+From there, the system goes to work. It reads the document, understands the context, pulls the quotes that match your themes—and delivers the results back in just a few minutes.
+
+No more hours of skimming. Just the insights you need.
+
+Slide 3: The Outcome
+Speaker Notes:
+
+Once the quotes are extracted, the IR team can quickly scan, edit, and condense them into the final commentary document.
+
+This is a great example of how GenAI can automate a high-effort, high-value task—saving teams hours of manual work, and freeing them up to focus on more strategic decisions.
+
+In short:
+Faster insights. Better decisions. Less manual work.
+
+Thank you!
