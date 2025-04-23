@@ -1,0 +1,15 @@
+"""
+Search ChromaDB contracts collection and return relevant results.
+
+:param payload: str, a JSON string representing a dictionary with the following keys:
+    - query (str): A natural language search query (e.g., "What are the payment terms?")
+    - source (str): A contract name (e.g., "Unified_Managed_Services_Contract_v5")
+    - section (str): A section within the contract (e.g., "Fee Breakdown", "Service Level Agreements")
+
+Example payload:
+{
+    "query": "QA",
+    "source": "Unified_Managed_Services_Contract_v5",
+    "section": "Services"
+}
+"""
