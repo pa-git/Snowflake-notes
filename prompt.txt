@@ -1,0 +1,1 @@
+If additional info is needed for any numeric value, convert the number to a string and embed the comment in parentheses. For example: "key": "10 (rounded estimate)". Do not use // or any form of comment syntax.
