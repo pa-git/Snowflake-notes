@@ -1,6 +1,3 @@
-class ExecuteQueryTaskInput(BaseModel):
-    analysis_plan: str = Field(..., description="Instructions describing how to process and analyze the retrieved content")
-    query: Optional[str] = Field("", description="Search term for semantic search; empty if retrieving full section")
-    source: Optional[str] = Field(None, description="Contract name to filter by (e.g., 'Unified_Managed_Services_Contract_v5')")
-    vendor: Optional[str] = Field(None, description="Vendor name to filter by (e.g., 'Ernst & Young LLP')")
-    section: str = Field(..., description="Specific section of the contract to search within (e.g., 'Roles', 'Services')")
+name: RetrieveContractData  
+description: >
+  Execute the analysis plan using the specified filters and search query provided by the previous task. Use the contract search tool to retrieve the relevant content from the appropriate sections. If a semantic query is provided, apply it within the defined section(s); otherwise, retrieve the full section content. Then, execute the steps outlined in the analysis plan to produce structured output such as summaries, lists, or comparison tables based strictly on the retrieved data. Do not generate answers beyond what is directly supported by the retrieved content.
