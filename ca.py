@@ -1,13 +1,37 @@
-import json
+def normalize_section_name(original_name: str) -> str:
+    """
+    Map specific section names to normalized group names.
+    """
 
-# Replace with your actual file path
-file_path = "path/to/your/file.json"
+    mapping = {
+        "Financials": "Financials",
+        "Fee Breakdown": "Financials",
+        "Exclusions": "Financials",
+        "Exceptions or Notes": "Financials",
 
-# Load the JSON file
-with open(file_path, "r") as f:
-    data = json.load(f)
+        "Divisions": "Scope and Structure",
+        "Initiatives": "Scope and Structure",
+        "Projects": "Scope and Structure",
 
-# Retrieve the vendor_name
-vendor_name = data.get("contract_metadata", {}).get("vendor_name")
+        "Core Applications": "Applications and Expectations",
+        "Supporting Applications": "Applications and Expectations",
+        "Key Activities": "Applications and Expectations",
+        "Assumptions": "Applications and Expectations",
+        "Expectations": "Applications and Expectations",
+        "Conditions": "Applications and Expectations",
 
-print("Vendor Name:", vendor_name)
+        "Contract Metadata": "Contract Metadata",
+        "Parties": "Contract Metadata",
+    }
+
+    return mapping.get(original_name.strip(), original_name)
+
+
+
+normalized_name = normalize_section_name(section.metadata.get("section", ""))
+section.metadata = {
+    "source": filename,
+    "vendor": vendor_name,
+    "section": normalized_name,
+    **section.metadata
+}
