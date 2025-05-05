@@ -1,0 +1,33 @@
+
+What was done:
+- Processed 173 contracts (from 15 last date)
+	- Last update: 15
+	- Processed: 75% of contracts received 233. 
+	- Each contract has a report created now in JSON so structured data that we can load into snowflake, or any database.
+	- For now each report is chunked, embedded using OpenAI, tagged with the name of the contract, the vendor, the section (roles, services, financials, full list of sections in annex) and load into a vector database. So now the database has 2943 of those chuncks saved. This is one of the chunk for example show screenshot plus metadata
+	- One very useful thing it that we can put IDs in this metadata to link any if these chunks to any other data was in other systems. 
+- Advanced search:
+	- Last update: it was a naive search. So if you said "mdmdmdmd" it searched "the same"
+	- Now: its a search with four filter.
+		- Query
+		- Contract name
+		- The vendor name
+		- The section
+- Multi-Agent system:
+	- Analyst Agent: 
+		- Create a plan 
+		- Create the filters
+	- Retriever and Executor Agent: 
+		- Use the search tool to retrieve the data as many times as needed
+		- execute the analysis plan
+		- Respond to the user
+	- So if you ask something more complex it can take 20-30 seconds. I think we'll worry about quality before we worry about speed.
+- What's next: we can talk about after the demo
+- While opening.
+- So we'll share the link and your login info. this is basic dev access control. This is not security - this is just so that anybody with the link can't just access it.
+- Open the Demo
+- Ask a few questions. What about that table....
+- What's next: We have :
+	- Memory: Remembering long term, short term, etc...
+	- Guardrails for each task of the agent we can set validators: hallucination, ...,...
+- And his points.
