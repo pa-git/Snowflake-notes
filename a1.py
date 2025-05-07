@@ -1,4 +1,3 @@
-json_data = [
-    {**c.dict(), "source": "LLM"}
-    for c in self.state['identify_use_case_task'].pydantic.changes
-]
+"Always return only the JSON object as raw text. "
+    "Do not use triple backticks, '```', or markdown formatting of any kind. "
+    "Just output the JSON directly."
