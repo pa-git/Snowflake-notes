@@ -1,16 +1,20 @@
-Execute the analysis plan using the exact filters and search query from the previous task. Do not reinterpret or modify the plan.
+with gr.Blocks(css=custom_css) as demo:
+    gr.ChatInterface(
+        analyst_chat,
+        title="Chat with Your Contracts",
+        type="messages",
+        flagging_mode="manual",
+        flagging_options=["Correct", "Incorrect"],
+        save_history=True,
+        theme=gr.themes.Default(primary_hue="blue"),
+    )
+    
+    # Footer section
+    gr.HTML('<div class="footer">🔒 Your chat is private and secure. Powered by GPT-4o.</div>')
 
-**Steps**:
-- Review the `analysis_plan` to understand what information to retrieve and how to process it.
-- Retrieve content using the Contract Search Tool with the exact `query`, `source`, `vendor`, `division`, and `section` values provided.
-- Execute the plan by transforming the retrieved content into structured output (e.g., summaries, lists, or comparison tables).
-
-**Important**:
-- Only use retrieved content. Do not infer or generate beyond it.
-- Never use triple backticks (```).
-- If using a Markdown table, limit to 10 columns.
-
-**expected_output**: >
-A structured Markdown response that answers the user’s question using only the retrieved data.  
-Always speak directly to the user—even if the query is vague or missing.  
-Respond politely and constructively. Encourage the user to follow up with more details or questions.
+if __name__ == "__main__":
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=int(os.getenv("SERVER_PORT")),
+        auth=authentication()
+    )
