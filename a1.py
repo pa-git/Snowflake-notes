@@ -1,3 +1,4 @@
-MATCH (p:Person)-[:HAS_ROLE]->(r:Role)-[:IS_A]->(cr:CanonicalRole)
-RETURN cr.name AS role, count(DISTINCT p) AS people_count
-ORDER BY people_count DESC
+MATCH (r:Role)-[:FILLED_BY]->(res:Resource),
+      (cr:CanonicalRole)-[:CANONICAL_FOR]->(r)
+RETURN cr.name AS canonical_role, COUNT(DISTINCT res) AS resource_count
+ORDER BY resource_count DESC
