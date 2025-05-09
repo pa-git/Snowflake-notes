@@ -1,5 +1,32 @@
 from neomodel import db
 from models import Party, Vendor, Contract, Service, Role, Rate, Resource, ServiceLevelAgreement, Project, Division, Initiative, Deliverable
+import os
+import json
+from pathlib import Path
+
+def load_all_contracts_from_directory(base_path: str):
+    base = Path(base_path)
+    contract_files = list(base.glob("contract_*/full_contract.json"))
+
+    summaries = []
+
+    for file in contract_files:
+        try:
+            with open(file, 'r', encoding='utf-8') as f:
+                contract_data = json.load(f)
+                summary = load_contract_from_json(contract_data)
+                summary['file'] = str(file)
+                summaries.append(summary)
+                print(f"Processed {file.name} ✓")
+        except Exception as e:
+            print(f"Failed to load {file}: {e}")
+
+    # Summary table
+    print("\n=== Summary Report ===")
+    for s in summaries:
+        print(f"\nFile: {s.pop('file')}")
+        for k, v in s.items():
+            print(f"  {k.capitalize()}: {v}")
 
 def load_contract_from_json(data: dict):
     summary = {
