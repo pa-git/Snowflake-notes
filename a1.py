@@ -34,10 +34,10 @@ def load_all_contracts_from_directory(base_path: str):
     if not summaries:
         print("No contracts processed.")
     else:
-    for s in summaries:
-                print(f"
+        for s in summaries:
+            print(f"
 File: {s.pop('file')}")
-        for k, v in s.items():
+            for k, v in s.items():
                     print(f"  {k.capitalize()}: {v}")
 
 def load_contract_from_json(data: dict):
