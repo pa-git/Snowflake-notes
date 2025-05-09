@@ -1,100 +1,137 @@
-from neomodel import (
-    StructuredNode, StringProperty, FloatProperty, IntegerProperty,
-    RelationshipTo, UniqueIdProperty
-)
+from neomodel import db
+from models import Party, Vendor, Contract, Service, Role, Rate, Resource, ServiceLevelAgreement, Project, Division, Initiative, Deliverable
 
-class Party(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty(required=True, unique_index=True)
-    type = StringProperty()  # e.g., "Client" or "Service Provider"
-    address = StringProperty()
-    context = StringProperty()
+def load_contract_from_json(data: dict):
+    summary = {
+        "vendors": 0,
+        "clients": 0,
+        "projects": 0,
+        "divisions": 0,
+        "initiatives": 0,
+        "contracts": 0,
+        "services": 0,
+        "roles": 0,
+        "resources": 0,
+        "rates": 0,
+        "slas": 0,
+        "deliverables": 0
+    }
 
-class Vendor(Party):
-    pass  # Same as Party, but used semantically
+    # --- Parties ---
+    parties = {}
+    for p in data.get("parties", []):
+        party, _ = Party.nodes.get_or_create(name=p["name"], defaults={
+            "type": p.get("type"),
+            "address": p.get("address"),
+            "context": p.get("context")
+        })
+        parties[p["type"]] = party
+        summary["vendors" if p["type"] == "Service Provider" else "clients"] += 1
 
-class Division(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty(required=True, unique_index=True)
-    description = StringProperty()
+    # --- Division ---
+    div = data.get("divisions", [{}])[0]
+    division, _ = Division.nodes.get_or_create(name=div.get("name"), defaults={"description": div.get("description")})
+    summary["divisions"] += 1
 
-class Initiative(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty(required=True, unique_index=True)
-    description = StringProperty()
+    # --- Initiative ---
+    init = data.get("initiatives", [{}])[0]
+    initiative, _ = Initiative.nodes.get_or_create(name=init.get("name"), defaults={"description": init.get("description")})
+    summary["initiatives"] += 1
 
-class Project(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty(required=True, unique_index=True)
-    description = StringProperty()
-    start_date = StringProperty()
-    end_date = StringProperty()
-    status = StringProperty()
+    # --- Project ---
+    proj = data.get("projects", [{}])[0]
+    project, _ = Project.nodes.get_or_create(name=proj.get("name"), defaults={
+        "description": proj.get("description"),
+        "start_date": proj.get("start_date"),
+        "end_date": proj.get("end_date"),
+        "status": proj.get("status")
+    })
+    project.division.connect(division)
+    project.initiative.connect(initiative)
+    summary["projects"] += 1
 
-    division = RelationshipTo(Division, 'BELONGS_TO')
-    initiative = RelationshipTo(Initiative, 'PART_OF')
+    # --- Contract ---
+    meta = data["contract_metadata"]
+    contract, _ = Contract.nodes.get_or_create(file_name=meta["file_name"], defaults={
+        "type": meta.get("type"),
+        "summary_description": meta.get("summary_description"),
+        "start_date": meta.get("start_date"),
+        "end_date": meta.get("end_date")
+    })
+    if "Client" in parties:
+        contract.client.connect(parties["Client"])
+    if "Service Provider" in parties:
+        contract.vendor.connect(parties["Service Provider"])
+    contract.project.connect(project)
+    summary["contracts"] += 1
 
-class Contract(StructuredNode):
-    uid = UniqueIdProperty()
-    file_name = StringProperty(required=True, unique_index=True)
-    type = StringProperty()
-    summary_description = StringProperty()
-    start_date = StringProperty()
-    end_date = StringProperty()
+    # --- Services ---
+    for s in data.get("services", []):
+        service = Service(
+            name=s["name"],
+            description=s.get("description"),
+            period=s.get("period"),
+            coverage=s.get("coverage"),
+            notes="\n".join(s.get("notes", []))
+        ).save()
+        contract.services.connect(service)
+        summary["services"] += 1
 
-    vendor = RelationshipTo(Party, 'SIGNED_BY_VENDOR')
-    client = RelationshipTo(Party, 'SIGNED_BY_CLIENT')
-    services = RelationshipTo('Service', 'COVERS')
-    roles = RelationshipTo('Role', 'INCLUDES')
-    project = RelationshipTo(Project, 'ASSOCIATED_WITH')
+    # --- SLAs ---
+    for s in data.get("service_level_agreements", []):
+        sla = ServiceLevelAgreement(
+            name=s["name"],
+            description=s.get("description"),
+            target=s.get("target"),
+            metric=s.get("metric"),
+            unit=s.get("unit"),
+            frequency=s.get("frequency"),
+            enforcement_method=s.get("enforcement_method")
+        ).save()
+        summary["slas"] += 1
 
-class Service(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty(required=True)
-    description = StringProperty()
-    period = StringProperty()
-    coverage = StringProperty()
-    notes = StringProperty()
+    # --- Roles ---
+    for r in data.get("roles", []):
+        role = Role(
+            role_name=r["role_name"],
+            description=r.get("description"),
+            level=r.get("level"),
+            location=r.get("location"),
+            hours_committed=r.get("hours_committed"),
+            billing_type=r.get("billing_type"),
+            schedule_reference=r.get("schedule_reference"),
+            project=r.get("project")
+        ).save()
 
-class ServiceLevelAgreement(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty(required=True)
-    description = StringProperty()
-    target = StringProperty()
-    metric = StringProperty()
-    unit = StringProperty()
-    frequency = StringProperty()
-    enforcement_method = StringProperty()
+        # Resource
+        res = Resource.nodes.get_or_none(name=r["resource_name"])
+        if not res:
+            res = Resource(name=r["resource_name"]).save()
+            summary["resources"] += 1
+        role.resource.connect(res)
 
-    applies_to = RelationshipTo(Service, 'APPLIES_TO')
+        # Rate
+        rate_data = r.get("rate")
+        if rate_data:
+            rate = Rate(
+                amount=rate_data["amount"],
+                currency=rate_data["currency"],
+                unit=rate_data["unit"]
+            ).save()
+            role.rate.connect(rate)
+            summary["rates"] += 1
 
-class Role(StructuredNode):
-    uid = UniqueIdProperty()
-    role_name = StringProperty()
-    description = StringProperty()
-    level = StringProperty()
-    location = StringProperty()
-    hours_committed = IntegerProperty()
-    billing_type = StringProperty()
-    schedule_reference = StringProperty()
-    project = StringProperty()
+        contract.roles.connect(role)
+        summary["roles"] += 1
 
-    rate = RelationshipTo('Rate', 'HAS_RATE')
-    resource = RelationshipTo('Resource', 'FILLED_BY')
+    # --- Deliverables ---
+    for d in data.get("deliverables_and_invoices", []):
+        deliv = Deliverable(
+            name=d.get("deliverable"),
+            delivery_date=d.get("delivery_date"),
+            invoice_amount_usd=d.get("invoice_amount_usd", 0.0),
+            percentage=d.get("percentage", 0.0)
+        ).save()
+        summary["deliverables"] += 1
 
-class Rate(StructuredNode):
-    uid = UniqueIdProperty()
-    amount = FloatProperty()
-    currency = StringProperty()
-    unit = StringProperty()
-
-class Resource(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty(required=True)
-
-class Deliverable(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty()
-    delivery_date = StringProperty()
-    invoice_amount_usd = FloatProperty()
-    percentage = FloatProperty()
+    return summary
