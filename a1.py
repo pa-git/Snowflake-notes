@@ -1,4 +1,3 @@
-role_nodes = Role.nodes.filter(role_name=v)
-for role_node in role_nodes:
-    canon_node.roles.connect(role_node)
-    print(f"  ↳ Linked: {v} → {canon}")
+MATCH (p:Person)-[:HAS_ROLE]->(r:Role)-[:IS_A]->(cr:CanonicalRole)
+RETURN cr.name AS role, count(DISTINCT p) AS people_count
+ORDER BY people_count DESC
