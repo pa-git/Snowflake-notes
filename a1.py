@@ -1,57 +1,9 @@
-import os
-import json
-from pathlib import Path
-from dotenv import load_dotenv
-from neomodel import db, config
-from models import Party, Vendor, Contract, Service, Role, Rate, Resource, ServiceLevelAgreement, Project, Division, Initiative, Deliverable
-
-# Load DATABASE_URL from .env
-load_dotenv()
-config.DATABASE_URL = os.getenv("DATABASE_URL")
-
-def load_all_contracts_from_directory(base_path: str):
-    base = Path(base_path)
-    contract_files = list(base.glob("contract_*/full_contract.json"))
-
-    summaries = []
-
-    for file in contract_files:
-        try:
-            with open(file, 'r', encoding='utf-8') as f:
-                contract_data = json.load(f)
-                summary = load_contract_from_json(contract_data)
-                summary['file'] = str(file)
-                summaries.append(summary)
-                print(f"Processed {file.name} ✓")
-        except Exception as e:
-            print(f"Failed to load {file}: {e}")
-
-    # Summary table
-    print("\n=== Summary Report ===")
-    for s in summaries:
-        print(f"\nFile: {s.pop('file')}")
-        for k, v in s.items():
-            print(f"  {k.capitalize()}: {v}")
-
-def load_contract_from_json(data: dict):
-    summary = {
-        "vendors": 0,
-        "clients": 0,
-        "projects": 0,
-        "divisions": 0,
-        "initiatives": 0,
-        "contracts": 0,
-        "services": 0,
-        "roles": 0,
-        "resources": 0,
-        "rates": 0,
-        "slas": 0,
-        "deliverables": 0
-    }
+... [trimmed for brevity above] ...
 
     # --- Parties ---
     parties = {}
     for p in data.get("parties", []):
+        print(f"Creating or retrieving Party: {p['name']} ({p['type']})")
         party = Party.nodes.get_or_none(name=p["name"])
         if not party:
             party = Party(
@@ -65,6 +17,7 @@ def load_contract_from_json(data: dict):
 
     # --- Division ---
     div = data.get("divisions", [{}])[0]
+    print(f"Creating or retrieving Division: {div.get('name')}")
     division = Division.nodes.get_or_none(name=div.get("name"))
     if not division:
         division = Division(name=div.get("name"), description=div.get("description")).save()
@@ -72,6 +25,7 @@ def load_contract_from_json(data: dict):
 
     # --- Initiative ---
     init = data.get("initiatives", [{}])[0]
+    print(f"Creating or retrieving Initiative: {init.get('name')}")
     initiative = Initiative.nodes.get_or_none(name=init.get("name"))
     if not initiative:
         initiative = Initiative(name=init.get("name"), description=init.get("description")).save()
@@ -79,6 +33,7 @@ def load_contract_from_json(data: dict):
 
     # --- Project ---
     proj = data.get("projects", [{}])[0]
+    print(f"Creating or retrieving Project: {proj.get('name')}")
     project = Project.nodes.get_or_none(name=proj.get("name"))
     if not project:
         project = Project(
@@ -94,6 +49,7 @@ def load_contract_from_json(data: dict):
 
     # --- Contract ---
     meta = data["contract_metadata"]
+    print(f"Creating or retrieving Contract: {meta['file_name']}")
     contract = Contract.nodes.get_or_none(file_name=meta["file_name"])
     if not contract:
         contract = Contract(
@@ -112,6 +68,7 @@ def load_contract_from_json(data: dict):
 
     # --- Services ---
     for s in data.get("services", []):
+        print(f"Adding Service: {s['name']}")
         service = Service(
             name=s["name"],
             description=s.get("description"),
@@ -124,6 +81,7 @@ def load_contract_from_json(data: dict):
 
     # --- SLAs ---
     for s in data.get("service_level_agreements", []):
+        print(f"Adding SLA: {s['name']}")
         sla = ServiceLevelAgreement(
             name=s["name"],
             description=s.get("description"),
@@ -137,6 +95,7 @@ def load_contract_from_json(data: dict):
 
     # --- Roles ---
     for r in data.get("roles", []):
+        print(f"Adding Role: {r['role_name']} for {r['resource_name']}")
         role = Role(
             role_name=r["role_name"],
             description=r.get("description"),
@@ -151,6 +110,7 @@ def load_contract_from_json(data: dict):
         # Resource
         res = Resource.nodes.get_or_none(name=r["resource_name"])
         if not res:
+            print(f"Creating Resource: {r['resource_name']}")
             res = Resource(name=r["resource_name"]).save()
             summary["resources"] += 1
         role.resource.connect(res)
@@ -158,6 +118,7 @@ def load_contract_from_json(data: dict):
         # Rate
         rate_data = r.get("rate")
         if rate_data:
+            print(f"Adding Rate for {r['resource_name']}: {rate_data['amount']} {rate_data['currency']} per {rate_data['unit']}")
             rate = Rate(
                 amount=rate_data["amount"],
                 currency=rate_data["currency"],
@@ -171,6 +132,7 @@ def load_contract_from_json(data: dict):
 
     # --- Deliverables ---
     for d in data.get("deliverables_and_invoices", []):
+        print(f"Adding Deliverable: {d.get('deliverable')}")
         deliv = Deliverable(
             name=d.get("deliverable"),
             delivery_date=d.get("delivery_date"),
