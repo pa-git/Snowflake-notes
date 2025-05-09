@@ -52,49 +52,62 @@ def load_contract_from_json(data: dict):
     # --- Parties ---
     parties = {}
     for p in data.get("parties", []):
-        party, _ = Party.nodes.get_or_create(name=p["name"], defaults={
-            "type": p.get("type"),
-            "address": p.get("address"),
-            "context": p.get("context")
-        })
+        party = Party.nodes.get_or_none(name=p["name"])
+        if not party:
+            party = Party(
+                name=p["name"],
+                type=p.get("type"),
+                address=p.get("address"),
+                context=p.get("context")
+            ).save()
         parties[p["type"]] = party
         summary["vendors" if p["type"] == "Service Provider" else "clients"] += 1
 
     # --- Division ---
     div = data.get("divisions", [{}])[0]
-    division, _ = Division.nodes.get_or_create(name=div.get("name"), defaults={"description": div.get("description")})
+    division = Division.nodes.get_or_none(name=div.get("name"))
+    if not division:
+        division = Division(name=div.get("name"), description=div.get("description")).save()
     summary["divisions"] += 1
 
     # --- Initiative ---
     init = data.get("initiatives", [{}])[0]
-    initiative, _ = Initiative.nodes.get_or_create(name=init.get("name"), defaults={"description": init.get("description")})
+    initiative = Initiative.nodes.get_or_none(name=init.get("name"))
+    if not initiative:
+        initiative = Initiative(name=init.get("name"), description=init.get("description")).save()
     summary["initiatives"] += 1
 
     # --- Project ---
     proj = data.get("projects", [{}])[0]
-    project, _ = Project.nodes.get_or_create(name=proj.get("name"), defaults={
-        "description": proj.get("description"),
-        "start_date": proj.get("start_date"),
-        "end_date": proj.get("end_date"),
-        "status": proj.get("status")
-    })
-    project.division.connect(division)
-    project.initiative.connect(initiative)
+    project = Project.nodes.get_or_none(name=proj.get("name"))
+    if not project:
+        project = Project(
+            name=proj.get("name"),
+            description=proj.get("description"),
+            start_date=proj.get("start_date"),
+            end_date=proj.get("end_date"),
+            status=proj.get("status")
+        ).save()
+        project.division.connect(division)
+        project.initiative.connect(initiative)
     summary["projects"] += 1
 
     # --- Contract ---
     meta = data["contract_metadata"]
-    contract, _ = Contract.nodes.get_or_create(file_name=meta["file_name"], defaults={
-        "type": meta.get("type"),
-        "summary_description": meta.get("summary_description"),
-        "start_date": meta.get("start_date"),
-        "end_date": meta.get("end_date")
-    })
-    if "Client" in parties:
-        contract.client.connect(parties["Client"])
-    if "Service Provider" in parties:
-        contract.vendor.connect(parties["Service Provider"])
-    contract.project.connect(project)
+    contract = Contract.nodes.get_or_none(file_name=meta["file_name"])
+    if not contract:
+        contract = Contract(
+            file_name=meta["file_name"],
+            type=meta.get("type"),
+            summary_description=meta.get("summary_description"),
+            start_date=meta.get("start_date"),
+            end_date=meta.get("end_date")
+        ).save()
+        if "Client" in parties:
+            contract.client.connect(parties["Client"])
+        if "Service Provider" in parties:
+            contract.vendor.connect(parties["Service Provider"])
+        contract.project.connect(project)
     summary["contracts"] += 1
 
     # --- Services ---
