@@ -12,6 +12,7 @@ config.DATABASE_URL = os.getenv("DATABASE_URL")
 def load_all_contracts_from_directory(base_path: str):
     base = Path(base_path)
     contract_files = list(base.glob("contract_*/full_contract.json"))
+    print(f"Found {len(contract_files)} contract files.")
 
     summaries = []
 
@@ -24,15 +25,20 @@ def load_all_contracts_from_directory(base_path: str):
                 summary['file'] = str(file)
                 summaries.append(summary)
                 print(f"Processed {file.name} ✓")
+            print(json.dumps(summary, indent=2))
         except Exception as e:
             print(f"Failed to load {file}: {e}")
 
     # Summary table
-    print("\n=== Summary Report ===")
+    print("=== Summary Report ===")
+    if not summaries:
+        print("No contracts processed.")
+    else:
     for s in summaries:
-        print(f"\nFile: {s.pop('file')}")
+                print(f"
+File: {s.pop('file')}")
         for k, v in s.items():
-            print(f"  {k.capitalize()}: {v}")
+                    print(f"  {k.capitalize()}: {v}")
 
 def load_contract_from_json(data: dict):
     summary = {
