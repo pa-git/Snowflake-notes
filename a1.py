@@ -1,172 +1,185 @@
-
-from neomodel import (
-    StructuredNode, StringProperty, FloatProperty, IntegerProperty, DateProperty,
-    RelationshipTo, ArrayProperty
+import os
+import json
+from pathlib import Path
+from dotenv import load_dotenv
+from neomodel import config
+from models import (
+    Contract, FeeBreakdown, Signature, Service, Role, ServiceLevelAgreement,
+    EngagementScope, Initiative, Project, DeliverableAndInvoice, Party
 )
 
-# --- Canonical Models ---
+# Load DATABASE_URL from .env
+load_dotenv()
+config.DATABASE_URL = os.getenv("DATABASE_URL")
 
-class CanonicalService(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty()
-    description = StringProperty()
 
-class CanonicalRole(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty()
-    description = StringProperty()
+def load_all_contracts_from_directory(base_path: str):
+    base = Path(base_path)
+    contract_files = list(base.glob("contract_*/full_contract.json"))
+    print(f"Found {len(contract_files)} contract files.")
 
-class CanonicalPerson(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty()
+    for file in contract_files:
+        try:
+            print(f"\nLoading file: {file.name}")
+            with open(file, 'r', encoding='utf-8') as f:
+                contract_data = json.load(f)
+                load_contract_from_json(contract_data)
+                print(f"Processed {file.name} ✓")
+        except Exception as e:
+            print(f"❌ Failed to load {file}: {e}")
 
-class CanonicalVendor(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty()
 
-class CanonicalLocation(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty()
-    address = StringProperty()
-    city = StringProperty()
-    state = StringProperty()
-    country = StringProperty()
-    continent = StringProperty()
+def load_contract_from_json(data: dict):
+    meta = data["contract_metadata"]
 
-class CanonicalDivision(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty()
+    contract = Contract.nodes.get_or_none(file_name=meta["file_name"])
+    if not contract:
+        print(f"- Creating contract: {meta['file_name']}")
+        contract = Contract(
+            file_name=meta["file_name"],
+            vendor_name=meta.get("vendor_name"),
+            type=meta.get("type"),
+            summary_description=meta.get("summary_description"),
+            start_date=meta.get("start_date"),
+            end_date=meta.get("end_date"),
+            base_fee=data.get("financials", {}).get("base_fee"),
+            total_fee=data.get("financials", {}).get("total_fee"),
+            exclusions=data.get("financials", {}).get("exclusions", []),
+            payment_terms=data.get("financials", {}).get("payment_terms"),
+            billing_instructions=data.get("financials", {}).get("billing_instructions"),
+            exceptions_or_notes=data.get("financials", {}).get("exceptions_or_notes", []),
+            division=(data.get("projects") or [{}])[0].get("division"),
+        ).save()
 
-# --- Main Models ---
+    # Fee Breakdown
+    for fee in data.get("financials", {}).get("fee_breakdown", []):
+        print(f"  - Fee Event: {fee['event']}")
+        fb = FeeBreakdown(event=fee["event"], fee=fee["fee"]).save()
+        contract.has_fee_breakdown.connect(fb)
 
-class FeeBreakdown(StructuredNode):
-    uid = UniqueIdProperty()
-    event = StringProperty()
-    fee = StringProperty()
+    # Signatures
+    for sig in data.get("signatures", []):
+        print(f"  - Signature: {sig['type']}")
+        s = Signature(
+            type=sig.get("type"),
+            name=sig.get("name"),
+            title=sig.get("title"),
+            date=sig.get("date")
+        ).save()
+        contract.signed_by.connect(s)
 
-class Signature(StructuredNode):
-    uid = UniqueIdProperty()
-    type = StringProperty()
-    name = StringProperty()
-    title = StringProperty()
-    date = DateProperty()
-    # Relationships to canonical nodes
-    is_canonical_person = RelationshipTo(CanonicalPerson, 'IS_CANONICAL_PERSON')
+    # Services
+    for s in data.get("services", []):
+        print(f"  - Service: {s['name']}")
+        service = Service(
+            name=s["name"],
+            description=s.get("description"),
+            period=s.get("period"),
+            coverage=s.get("coverage"),
+            locations=s.get("locations", []),
+            days=s.get("days"),
+            quantity=s.get("quantity"),
+            unit_price=s.get("unit_price"),
+            total=s.get("total"),
+            notes=s.get("notes", [])
+        ).save()
+        contract.includes_service.connect(service)
 
-class Service(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty()
-    description = StringProperty()
-    period = StringProperty()
-    coverage = StringProperty()
-    locations = ArrayProperty(StringProperty())
-    days = IntegerProperty()
-    quantity = IntegerProperty()
-    unit_price = StringProperty()
-    total = StringProperty()
-    notes = ArrayProperty(StringProperty())
-    # Relationships to canonical nodes
-    provided_at = RelationshipTo(CanonicalLocation, 'PROVIDED_AT')
-    is_canonical_service = RelationshipTo(CanonicalService, 'IS_CANONICAL_SERVICE')
+    # Roles
+    for r in data.get("roles", []):
+        print(f"  - Role: {r['role_name']} / {r['resource_name']}")
+        role = Role(
+            name=r["role_name"],
+            resource_name=r["resource_name"],
+            description=r.get("description"),
+            level=r.get("level"),
+            location=r.get("location"),
+            hours_committed=r.get("hours_committed"),
+            rate_amount=r.get("rate", {}).get("amount"),
+            rate_currency=r.get("rate", {}).get("currency"),
+            rate_unit=r.get("rate", {}).get("unit"),
+            total_fees=r.get("total_fees"),
+            billing_type=r.get("billing_type"),
+            schedule_reference=r.get("schedule_reference"),
+            project=r.get("project")
+        ).save()
+        contract.includes_role.connect(role)
 
-class Role(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty()
-    resource_name = StringProperty() 
-    description = StringProperty()
-    level = StringProperty()
-    location = StringProperty()
-    hours_committed = IntegerProperty()
-    rate_amount = FloatProperty()
-    rate_currency = StringProperty()
-    rate_unit = StringProperty()
-    total_fees = FloatProperty()
-    billing_type = StringProperty()
-    schedule_reference = StringProperty()
-    project = StringProperty()
-    # Relationships to canonical nodes
-    is_canonical_role = RelationshipTo(CanonicalRole, 'IS_CANONICAL_ROLE')
-    assigned_to = RelationshipTo(CanonicalPerson, 'ASSIGNED_TO')
-    located_at = RelationshipTo(CanonicalLocation, 'LOCATED_AT')
+    # SLAs
+    for s in data.get("service_level_agreements", []):
+        print(f"  - SLA: {s['name']}")
+        sla = ServiceLevelAgreement(
+            name=s.get("name"),
+            description=s.get("description"),
+            target=s.get("target"),
+            metric=s.get("metric"),
+            unit=s.get("unit"),
+            frequency=s.get("frequency"),
+            applies_to=s.get("applies_to_services", []),
+            penalty_clause=s.get("penalty_clause"),
+            enforcement_method=s.get("enforcement_method")
+        ).save()
+        contract.governed_by_sla.connect(sla)
 
-class ServiceLevelAgreement(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty()
-    description = StringProperty()
-    target = StringProperty()
-    metric = StringProperty()
-    unit = StringProperty()
-    frequency = StringProperty()
-    applies_to = ArrayProperty(StringProperty())
-    penalty_clause = StringProperty()
-    enforcement_method = StringProperty()
+    # Engagement Scope
+    print("  - Engagement Scope")
+    scope = EngagementScope(
+        core_applications=data.get("engagement_scope", {}).get("core_applications", []),
+        supporting_applications=data.get("engagement_scope", {}).get("supporting_applications", []),
+        key_activities=data.get("engagement_scope", {}).get("key_activities", []),
+        assumptions=data.get("assumptions", []),
+        expectations=data.get("expectations", []),
+        conditions=data.get("conditions", [])
+    ).save()
+    contract.has_engagement_scope.connect(scope)
 
-class EngagementScope(StructuredNode):
-    uid = UniqueIdProperty()
-    core_applications = ArrayProperty(StringProperty())
-    supporting_applications = ArrayProperty(StringProperty())
-    key_activities = ArrayProperty(StringProperty())
-    assumptions = ArrayProperty(StringProperty())
-    expectations = ArrayProperty(StringProperty())
-    conditions = ArrayProperty(StringProperty())
+    # Initiative
+    init = (data.get("initiatives") or [{}])[0]
+    if init.get("name"):
+        print(f"  - Initiative: {init['name']}")
+        initiative = Initiative.nodes.get_or_none(name=init["name"])
+        if not initiative:
+            initiative = Initiative(
+                name=init["name"],
+                description=init.get("description")
+            ).save()
+        contract.associated_with_initiative.connect(initiative)
 
-class Initiative(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty()
-    description = StringProperty()
+    # Project
+    proj = (data.get("projects") or [{}])[0]
+    if proj.get("name"):
+        print(f"  - Project: {proj['name']}")
+        project = Project.nodes.get_or_none(name=proj["name"])
+        if not project:
+            project = Project(
+                name=proj["name"],
+                description=proj.get("description"),
+                start_date=proj.get("start_date"),
+                end_date=proj.get("end_date"),
+                status=proj.get("status")
+            ).save()
+        contract.associated_with_project.connect(project)
 
-class Project(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty()
-    description = StringProperty()
-    start_date = DateProperty()
-    end_date = DateProperty()
-    status = StringProperty()
+    # Deliverables
+    for d in data.get("deliverables_and_invoices", []):
+        print(f"  - Deliverable: {d['deliverable']}")
+        deliv = DeliverableAndInvoice(
+            deliverable=d.get("deliverable"),
+            delivery_date=d.get("delivery_date"),
+            invoice_amount_usd=d.get("invoice_amount_usd", 0.0),
+            percentage=d.get("percentage", 0.0)
+        ).save()
+        contract.has_deliverable_invoice.connect(deliv)
 
-class DeliverableAndInvoice(StructuredNode):
-    uid = UniqueIdProperty()
-    deliverable = StringProperty()
-    delivery_date = DateProperty()
-    invoice_amount_usd = FloatProperty()
-    percentage = FloatProperty()
-
-class Party(StructuredNode):
-    uid = UniqueIdProperty()
-    name = StringProperty()
-    type = StringProperty()
-    address = StringProperty()
-    context = StringProperty()
-    # Relationships to canonical nodes
-    is_canonical_person = RelationshipTo(CanonicalPerson, 'IS_CANONICAL_PERSON')
-    located_at = RelationshipTo(CanonicalLocation, 'LOCATED_AT')
-
-class Contract(StructuredNode):
-    uid = UniqueIdProperty()
-    file_name = StringProperty()
-    vendor_name = StringProperty()
-    type = StringProperty()
-    summary_description = StringProperty()
-    start_date = DateProperty()
-    end_date = DateProperty()
-    base_fee = StringProperty()
-    total_fee = StringProperty()
-    exclusions = ArrayProperty(StringProperty())
-    payment_terms = StringProperty()
-    billing_instructions = StringProperty()
-    exceptions_or_notes = ArrayProperty(StringProperty())
-    funding_request_id = StringProperty()
-    division = StringProperty()
-    # Relationships to main nodes
-    has_fee_breakdown = RelationshipTo(FeeBreakdown, 'HAS_FEE_BREAKDOWN')
-    signed_by = RelationshipTo(Signature, 'SIGNED_BY')
-    includes_service = RelationshipTo(Service, 'INCLUDES_SERVICE')
-    includes_role = RelationshipTo(Role, 'INCLUDES_ROLE')
-    governed_by_sla = RelationshipTo(ServiceLevelAgreement, 'GOVERNED_BY_SLA')
-    has_engagement_scope = RelationshipTo(EngagementScope, 'HAS_ENGAGEMENT_SCOPE')
-    associated_with_initiative = RelationshipTo(Initiative, 'ASSOCIATED_WITH_INITIATIVE')
-    associated_with_project = RelationshipTo(Project, 'ASSOCIATED_WITH_PROJECT')
-    has_deliverable_invoice = RelationshipTo(DeliverableAndInvoice, 'HAS_DELIVERABLE_INVOICE')
-    involves_party = RelationshipTo(Party, 'INVOLVES_PARTY')
-    # Relationships to canonical nodes
-    is_with_vendor = RelationshipTo(CanonicalVendor, 'IS_WITH_VENDOR')
-    is_for_division = RelationshipTo(CanonicalDivision, 'IS_FOR_DIVISION')
+    # Parties
+    for p in data.get("parties", []):
+        print(f"  - Party: {p['name']}")
+        party = Party.nodes.get_or_none(name=p["name"])
+        if not party:
+            party = Party(
+                name=p["name"],
+                type=p.get("type"),
+                address=p.get("address"),
+                context=p.get("context")
+            ).save()
+        contract.involves_party.connect(party)
