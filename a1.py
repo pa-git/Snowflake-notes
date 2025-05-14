@@ -1,167 +1,135 @@
-NODES
-CONTRACT
-file_name
 
-type
-
-summary_description
-
-start_date
-
-end_date
-
-base_fee
-
-total_fee
-
-exclusions (list)
-
-payment_terms
-
-billing_instructions
-
-exceptions_or_notes (list)
-
-funding_request_id (from CSV lookup)
-
-PARTY
-(from signatures, parties, roles.resource_name)
-
-name
-
-title
-
-address
-
-context
-
-CANONICAL_PARTY
-name
-
-description
-
-SERVICE
-name
-
-description
-
-CANONICAL_SERVICE
-name
-
-description
-
-VENDOR
-name
-
-CANONICAL_VENDOR
-name
-
-RATE
-unit
-
-amount
-
-currency
-
-total_fees
-
-billing_type
-
-days_committed
-
-hours_committed
-
-notes (list)
-
-ROLE
-name
-
-description
-
-level
-
-SERVICE_LEVEL_AGREEMENT
-name
-
-description
-
-target
-
-metric
-
-unit
-
-frequency
-
-applies_to (string or array)
-
-penalty_clause
-
-enforcement_method
-
-ENGAGEMENT_SCOPE
-core_applications (list)
-
-supporting_applications (list)
-
-key_activities (list)
-
-assumptions (list)
-
-expectations (list)
-
-conditions (list)
-
-DIVISION
-name (from CSV lookup or JSON)
-
-INITIATIVE
-name
-
-description
-
-PROJECT
-name
-
-description
-
-start_date
-
-end_date
-
-status
-
-LOCATION
-name
-
-CANONICAL_LOCATION
-address
-
-city
-
-state
-
-country
-
-continent
-
-🔗 RELATIONSHIPS
-Source → Target	Relationship Name	Notes
-CONTRACT → VENDOR	HAS_VENDOR	
-CONTRACT → PARTY	INVOLVES_PARTY	covers all types from signatures, roles.resource_name, parties
-PARTY → CANONICAL_PARTY	IS_CANONICAL_PARTY	canonical name grouping
-PARTY → CANONICAL_LOCATION	LOCATED_IN	
-CONTRACT → ENGAGEMENT_SCOPE	HAS_SCOPE	
-CONTRACT → DIVISION	BELONGS_TO_DIVISION	
-CONTRACT → INITIATIVE	ASSOCIATED_WITH_INITIATIVE	
-CONTRACT → SERVICE	INCLUDES_SERVICE	
-SERVICE → RATE	HAS_RATE	
-SERVICE → LOCATION	PROVIDED_AT	
-SERVICE → CANONICAL_SERVICE	IS_CANONICAL_SERVICE	
-CONTRACT → SERVICE_LEVEL_AGREEMENT	GOVERNED_BY_SLA	
-CONTRACT → PROJECT	DELIVERS_PROJECT	
-VENDOR → CANONICAL_VENDOR	IS_CANONICAL_VENDOR	
-ROLE → PARTY	ASSIGNED_TO	resource_name → PARTY
-ROLE → RATE	HAS_RATE	
-ROLE → LOCATION	BASED_AT	
-ROLE → CANONICAL_ROLE	IS_CANONICAL_ROLE	if such grouping exists
+from neomodel import (
+    StructuredNode, StringProperty, FloatProperty, IntegerProperty, DateProperty,
+    RelationshipTo, ArrayProperty
+)
+
+# --- Related Models (Canonical, Rate, Location, etc.) ---
+
+class CanonicalParty(StructuredNode):
+    name = StringProperty()
+    description = StringProperty()
+
+class CanonicalService(StructuredNode):
+    name = StringProperty()
+    description = StringProperty()
+
+class CanonicalVendor(StructuredNode):
+    name = StringProperty()
+
+class CanonicalLocation(StructuredNode):
+    address = StringProperty()
+    city = StringProperty()
+    state = StringProperty()
+    country = StringProperty()
+    continent = StringProperty()
+
+class Location(StructuredNode):
+    name = StringProperty()
+    located_in = RelationshipTo(CanonicalLocation, 'LOCATED_IN')
+
+class Rate(StructuredNode):
+    unit = StringProperty()
+    amount = FloatProperty()
+    currency = StringProperty()
+    total_fees = FloatProperty()
+    billing_type = StringProperty()
+    days_committed = IntegerProperty()
+    hours_committed = IntegerProperty()
+    notes = ArrayProperty(StringProperty())
+
+# --- Main Models ---
+
+class FeeBreakdown(StructuredNode):
+    event = StringProperty()
+    fee = StringProperty()
+    notes = StringProperty()
+
+class Vendor(StructuredNode):
+    name = StringProperty()
+    is_canonical_vendor = RelationshipTo(CanonicalVendor, 'IS_CANONICAL_VENDOR')
+
+class Party(StructuredNode):
+    name = StringProperty()
+    title = StringProperty()
+    address = StringProperty()
+    context = StringProperty()
+    is_canonical_party = RelationshipTo(CanonicalParty, 'IS_CANONICAL_PARTY')
+    located_in = RelationshipTo(CanonicalLocation, 'LOCATED_IN')
+
+class CanonicalRole(StructuredNode):
+    name = StringProperty()
+    description = StringProperty()
+
+class Role(StructuredNode):
+    name = StringProperty()
+    description = StringProperty()
+    level = StringProperty()
+    assigned_to = RelationshipTo(Party, 'ASSIGNED_TO')
+    has_rate = RelationshipTo(Rate, 'HAS_RATE')
+    based_at = RelationshipTo(Location, 'BASED_AT')
+    is_canonical_role = RelationshipTo(CanonicalRole, 'IS_CANONICAL_ROLE')
+
+class Service(StructuredNode):
+    name = StringProperty()
+    description = StringProperty()
+    has_rate = RelationshipTo(Rate, 'HAS_RATE')
+    provided_at = RelationshipTo(Location, 'PROVIDED_AT')
+    is_canonical_service = RelationshipTo(CanonicalService, 'IS_CANONICAL_SERVICE')
+
+class ServiceLevelAgreement(StructuredNode):
+    name = StringProperty()
+    description = StringProperty()
+    target = StringProperty()
+    metric = StringProperty()
+    unit = StringProperty()
+    frequency = StringProperty()
+    applies_to = ArrayProperty(StringProperty())
+    penalty_clause = StringProperty()
+    enforcement_method = StringProperty()
+
+class EngagementScope(StructuredNode):
+    core_applications = ArrayProperty(StringProperty())
+    supporting_applications = ArrayProperty(StringProperty())
+    key_activities = ArrayProperty(StringProperty())
+    assumptions = ArrayProperty(StringProperty())
+    expectations = ArrayProperty(StringProperty())
+    conditions = ArrayProperty(StringProperty())
+
+class Division(StructuredNode):
+    name = StringProperty()
+
+class Initiative(StructuredNode):
+    name = StringProperty()
+    description = StringProperty()
+
+class Project(StructuredNode):
+    name = StringProperty()
+    description = StringProperty()
+    start_date = DateProperty()
+    end_date = DateProperty()
+    status = StringProperty()
+
+class Contract(StructuredNode):
+    file_name = StringProperty()
+    type = StringProperty()
+    summary_description = StringProperty()
+    start_date = DateProperty()
+    end_date = DateProperty()
+    base_fee = StringProperty()
+    total_fee = StringProperty()
+    exclusions = ArrayProperty(StringProperty())
+    payment_terms = StringProperty()
+    billing_instructions = StringProperty()
+    exceptions_or_notes = ArrayProperty(StringProperty())
+    funding_request_id = StringProperty()
+
+    has_vendor = RelationshipTo(Vendor, 'HAS_VENDOR')
+    involves_party = RelationshipTo(Party, 'INVOLVES_PARTY')
+    has_scope = RelationshipTo(EngagementScope, 'HAS_SCOPE')
+    belongs_to_division = RelationshipTo(Division, 'BELONGS_TO_DIVISION')
+    associated_with_initiative = RelationshipTo(Initiative, 'ASSOCIATED_WITH_INITIATIVE')
+    includes_service = RelationshipTo(Service, 'INCLUDES_SERVICE')
+    governed_by_sla = RelationshipTo(ServiceLevelAgreement, 'GOVERNED_BY_SLA')
+    delivers_project = RelationshipTo(Project, 'DELIVERS_PROJECT')
+    has_fee_breakdown = RelationshipTo(FeeBreakdown, 'HAS_FEE_BREAKDOWN')
