@@ -7,20 +7,25 @@ from neomodel import (
 # --- Canonical Models ---
 
 class CanonicalService(StructuredNode):
+    uid = UniqueIdProperty()
     name = StringProperty()
     description = StringProperty()
 
 class CanonicalRole(StructuredNode):
+    uid = UniqueIdProperty()
     name = StringProperty()
     description = StringProperty()
 
 class CanonicalPerson(StructuredNode):
+    uid = UniqueIdProperty()
     name = StringProperty()
 
 class CanonicalVendor(StructuredNode):
+    uid = UniqueIdProperty()
     name = StringProperty()
 
 class CanonicalLocation(StructuredNode):
+    uid = UniqueIdProperty()
     name = StringProperty()
     address = StringProperty()
     city = StringProperty()
@@ -29,15 +34,18 @@ class CanonicalLocation(StructuredNode):
     continent = StringProperty()
 
 class CanonicalDivision(StructuredNode):
+    uid = UniqueIdProperty()
     name = StringProperty()
 
 # --- Main Models ---
 
 class FeeBreakdown(StructuredNode):
+    uid = UniqueIdProperty()
     event = StringProperty()
     fee = StringProperty()
 
 class Signature(StructuredNode):
+    uid = UniqueIdProperty()
     type = StringProperty()
     name = StringProperty()
     title = StringProperty()
@@ -46,6 +54,7 @@ class Signature(StructuredNode):
     is_canonical_person = RelationshipTo(CanonicalPerson, 'IS_CANONICAL_PERSON')
 
 class Service(StructuredNode):
+    uid = UniqueIdProperty()
     name = StringProperty()
     description = StringProperty()
     period = StringProperty()
@@ -61,6 +70,7 @@ class Service(StructuredNode):
     is_canonical_service = RelationshipTo(CanonicalService, 'IS_CANONICAL_SERVICE')
 
 class Role(StructuredNode):
+    uid = UniqueIdProperty()
     name = StringProperty()
     resource_name = StringProperty() 
     description = StringProperty()
@@ -80,6 +90,7 @@ class Role(StructuredNode):
     located_at = RelationshipTo(CanonicalLocation, 'LOCATED_AT')
 
 class ServiceLevelAgreement(StructuredNode):
+    uid = UniqueIdProperty()
     name = StringProperty()
     description = StringProperty()
     target = StringProperty()
@@ -91,6 +102,7 @@ class ServiceLevelAgreement(StructuredNode):
     enforcement_method = StringProperty()
 
 class EngagementScope(StructuredNode):
+    uid = UniqueIdProperty()
     core_applications = ArrayProperty(StringProperty())
     supporting_applications = ArrayProperty(StringProperty())
     key_activities = ArrayProperty(StringProperty())
@@ -99,10 +111,12 @@ class EngagementScope(StructuredNode):
     conditions = ArrayProperty(StringProperty())
 
 class Initiative(StructuredNode):
+    uid = UniqueIdProperty()
     name = StringProperty()
     description = StringProperty()
 
 class Project(StructuredNode):
+    uid = UniqueIdProperty()
     name = StringProperty()
     description = StringProperty()
     start_date = DateProperty()
@@ -110,12 +124,14 @@ class Project(StructuredNode):
     status = StringProperty()
 
 class DeliverableAndInvoice(StructuredNode):
+    uid = UniqueIdProperty()
     deliverable = StringProperty()
     delivery_date = DateProperty()
     invoice_amount_usd = FloatProperty()
     percentage = FloatProperty()
 
 class Party(StructuredNode):
+    uid = UniqueIdProperty()
     name = StringProperty()
     type = StringProperty()
     address = StringProperty()
@@ -125,6 +141,7 @@ class Party(StructuredNode):
     located_at = RelationshipTo(CanonicalLocation, 'LOCATED_AT')
 
 class Contract(StructuredNode):
+    uid = UniqueIdProperty()
     file_name = StringProperty()
     vendor_name = StringProperty()
     type = StringProperty()
