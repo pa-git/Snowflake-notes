@@ -4,78 +4,80 @@ from neomodel import (
     RelationshipTo, ArrayProperty
 )
 
-# --- Related Models (Canonical, Rate, Location, etc.) ---
-
-class CanonicalParty(StructuredNode):
-    name = StringProperty()
-    description = StringProperty()
+# --- Canonical Models ---
 
 class CanonicalService(StructuredNode):
     name = StringProperty()
     description = StringProperty()
 
+class CanonicalRole(StructuredNode):
+    name = StringProperty()
+    description = StringProperty()
+
+class CanonicalPerson(StructuredNode):
+    name = StringProperty()
+
 class CanonicalVendor(StructuredNode):
     name = StringProperty()
 
 class CanonicalLocation(StructuredNode):
+    name = StringProperty()
     address = StringProperty()
     city = StringProperty()
     state = StringProperty()
     country = StringProperty()
     continent = StringProperty()
 
-class Location(StructuredNode):
+class CanonicalDivision(StructuredNode):
     name = StringProperty()
-    located_in = RelationshipTo(CanonicalLocation, 'LOCATED_IN')
-
-class Rate(StructuredNode):
-    unit = StringProperty()
-    amount = FloatProperty()
-    currency = StringProperty()
-    total_fees = FloatProperty()
-    billing_type = StringProperty()
-    days_committed = IntegerProperty()
-    hours_committed = IntegerProperty()
-    notes = ArrayProperty(StringProperty())
 
 # --- Main Models ---
 
 class FeeBreakdown(StructuredNode):
     event = StringProperty()
     fee = StringProperty()
-    notes = StringProperty()
 
-class Vendor(StructuredNode):
-    name = StringProperty()
-    is_canonical_vendor = RelationshipTo(CanonicalVendor, 'IS_CANONICAL_VENDOR')
-
-class Party(StructuredNode):
+class Signature(StructuredNode):
+    type = StringProperty()
     name = StringProperty()
     title = StringProperty()
-    address = StringProperty()
-    context = StringProperty()
-    is_canonical_party = RelationshipTo(CanonicalParty, 'IS_CANONICAL_PARTY')
-    located_in = RelationshipTo(CanonicalLocation, 'LOCATED_IN')
-
-class CanonicalRole(StructuredNode):
-    name = StringProperty()
-    description = StringProperty()
-
-class Role(StructuredNode):
-    name = StringProperty()
-    description = StringProperty()
-    level = StringProperty()
-    assigned_to = RelationshipTo(Party, 'ASSIGNED_TO')
-    has_rate = RelationshipTo(Rate, 'HAS_RATE')
-    based_at = RelationshipTo(Location, 'BASED_AT')
-    is_canonical_role = RelationshipTo(CanonicalRole, 'IS_CANONICAL_ROLE')
+    date = DateProperty()
+    # Relationships to canonical nodes
+    is_canonical_person = RelationshipTo(CanonicalPerson, 'IS_CANONICAL_PERSON')
 
 class Service(StructuredNode):
     name = StringProperty()
     description = StringProperty()
-    has_rate = RelationshipTo(Rate, 'HAS_RATE')
-    provided_at = RelationshipTo(Location, 'PROVIDED_AT')
+    period = StringProperty()
+    coverage = StringProperty()
+    locations = ArrayProperty(StringProperty())
+    days = IntegerProperty()
+    quantity = IntegerProperty()
+    unit_price = StringProperty()
+    total = StringProperty()
+    notes = ArrayProperty(StringProperty())
+    # Relationships to canonical nodes
+    provided_at = RelationshipTo(CanonicalLocation, 'PROVIDED_AT')
     is_canonical_service = RelationshipTo(CanonicalService, 'IS_CANONICAL_SERVICE')
+
+class Role(StructuredNode):
+    name = StringProperty()
+    resource_name = StringProperty() 
+    description = StringProperty()
+    level = StringProperty()
+    location = StringProperty()
+    hours_committed = IntegerProperty()
+    rate_amount = FloatProperty()
+    rate_currency = StringProperty()
+    rate_unit = StringProperty()
+    total_fees = FloatProperty()
+    billing_type = StringProperty()
+    schedule_reference = StringProperty()
+    project = StringProperty()
+    # Relationships to canonical nodes
+    is_canonical_role = RelationshipTo(CanonicalRole, 'IS_CANONICAL_ROLE')
+    assigned_to = RelationshipTo(CanonicalPerson, 'ASSIGNED_TO')
+    located_at = RelationshipTo(CanonicalLocation, 'LOCATED_AT')
 
 class ServiceLevelAgreement(StructuredNode):
     name = StringProperty()
@@ -96,9 +98,6 @@ class EngagementScope(StructuredNode):
     expectations = ArrayProperty(StringProperty())
     conditions = ArrayProperty(StringProperty())
 
-class Division(StructuredNode):
-    name = StringProperty()
-
 class Initiative(StructuredNode):
     name = StringProperty()
     description = StringProperty()
@@ -110,8 +109,24 @@ class Project(StructuredNode):
     end_date = DateProperty()
     status = StringProperty()
 
+class DeliverableAndInvoice(StructuredNode):
+    deliverable = StringProperty()
+    delivery_date = DateProperty()
+    invoice_amount_usd = FloatProperty()
+    percentage = FloatProperty()
+
+class Party(StructuredNode):
+    name = StringProperty()
+    type = StringProperty()
+    address = StringProperty()
+    context = StringProperty()
+    # Relationships to canonical nodes
+    is_canonical_person = RelationshipTo(CanonicalPerson, 'IS_CANONICAL_PERSON')
+    located_at = RelationshipTo(CanonicalLocation, 'LOCATED_AT')
+
 class Contract(StructuredNode):
     file_name = StringProperty()
+    vendor_name = StringProperty()
     type = StringProperty()
     summary_description = StringProperty()
     start_date = DateProperty()
@@ -123,13 +138,18 @@ class Contract(StructuredNode):
     billing_instructions = StringProperty()
     exceptions_or_notes = ArrayProperty(StringProperty())
     funding_request_id = StringProperty()
-
-    has_vendor = RelationshipTo(Vendor, 'HAS_VENDOR')
-    involves_party = RelationshipTo(Party, 'INVOLVES_PARTY')
-    has_scope = RelationshipTo(EngagementScope, 'HAS_SCOPE')
-    belongs_to_division = RelationshipTo(Division, 'BELONGS_TO_DIVISION')
-    associated_with_initiative = RelationshipTo(Initiative, 'ASSOCIATED_WITH_INITIATIVE')
-    includes_service = RelationshipTo(Service, 'INCLUDES_SERVICE')
-    governed_by_sla = RelationshipTo(ServiceLevelAgreement, 'GOVERNED_BY_SLA')
-    delivers_project = RelationshipTo(Project, 'DELIVERS_PROJECT')
+    division = StringProperty()
+    # Relationships to main nodes
     has_fee_breakdown = RelationshipTo(FeeBreakdown, 'HAS_FEE_BREAKDOWN')
+    signed_by = RelationshipTo(Signature, 'SIGNED_BY')
+    includes_service = RelationshipTo(Service, 'INCLUDES_SERVICE')
+    includes_role = RelationshipTo(Role, 'INCLUDES_ROLE')
+    governed_by_sla = RelationshipTo(ServiceLevelAgreement, 'GOVERNED_BY_SLA')
+    has_engagement_scope = RelationshipTo(EngagementScope, 'HAS_ENGAGEMENT_SCOPE')
+    associated_with_initiative = RelationshipTo(Initiative, 'ASSOCIATED_WITH_INITIATIVE')
+    associated_with_project = RelationshipTo(Project, 'ASSOCIATED_WITH_PROJECT')
+    has_deliverable_invoice = RelationshipTo(DeliverableAndInvoice, 'HAS_DELIVERABLE_INVOICE')
+    involves_party = RelationshipTo(Party, 'INVOLVES_PARTY')
+    # Relationships to canonical nodes
+    is_with_vendor = RelationshipTo(CanonicalVendor, 'IS_WITH_VENDOR')
+    is_for_division = RelationshipTo(CanonicalDivision, 'IS_FOR_DIVISION')
