@@ -3,61 +3,41 @@ import json
 import openai
 from dotenv import load_dotenv
 from neomodel import db
-from models import CanonicalPerson, Signature, Party, Role
+from models import Contract, CanonicalVendor
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
-def fetch_all_person_entities():
-    signatures, _ = db.cypher_query("MATCH (n:Signature) RETURN n.name, n.title")
-    roles, _ = db.cypher_query("MATCH (n:Role) RETURN n.resource_name, n.level")
-    parties, _ = db.cypher_query("MATCH (n:Party) RETURN n.name, n.type")
-
-    # Build structured disambiguation entries
-    people = []
-
-    for name, title in signatures:
-        if name:
-            people.append({"source": "Signature", "name": name.strip(), "context": title or ""})
-
-    for name, level in roles:
-        if name:
-            people.append({"source": "Role", "name": name.strip(), "context": level or ""})
-
-    for name, type_ in parties:
-        if name:
-            people.append({"source": "Party", "name": name.strip(), "context": type_ or ""})
-
-    return people
+def fetch_all_vendor_names():
+    vendors, _ = db.cypher_query("MATCH (c:Contract) RETURN DISTINCT c.vendor_name")
+    return sorted({v[0] for v in vendors if v[0]})
 
 
-def group_people_with_gpt(people):
+def group_vendors_with_gpt(vendor_names):
     system_prompt = (
-        "You are a data deduplication expert. Your job is to group similar real-world persons "
-        "who might appear under slightly different names and roles in different systems. "
-        "Use name and context clues to disambiguate."
+        "You are a data normalization expert for enterprise vendors. "
+        "Group vendor names that refer to the same organization even if formatting varies "
+        "(e.g. Maxus Group vs. Maxus Group, Inc.)."
     )
 
-    items = "\n".join(f"- {p['name']} ({p['context']})" for p in people)
-
     user_prompt = f"""
-Group the following people by likely real identity.
+Group the following vendor names into canonical vendor categories.
 
 For each group, return:
-- "name": the canonical person name
-- "matches": list of names (with optional context) that refer to that person
+- "name": the canonical vendor name
+- "matches": list of vendor name variations that refer to this vendor
 
 Respond in JSON format like:
 [
   {{
-    "name": "John Wolfgang",
-    "matches": ["John Wolfgang (z/OS SME)", "J. Wolfgang", "John W."]
+    "name": "Maxus Group, Inc.",
+    "matches": ["Maxus Group", "Maxus Group, Inc.", "MAXUS GROUP INC"]
   }}
 ]
 
-People:
-{items}
+Vendors:
+{"\n".join(f"- {v}" for v in vendor_names)}
 """
 
     response = openai.ChatCompletion.create(
@@ -72,48 +52,30 @@ People:
     return json.loads(response.choices[0].message.content)
 
 
-def create_and_link_canonical_persons(groups):
+def create_and_link_canonical_vendors(groups):
     for group in groups:
-        canonical = CanonicalPerson.nodes.get_or_none(name=group["name"])
+        canonical = CanonicalVendor.nodes.get_or_none(name=group["name"])
         if not canonical:
-            canonical = CanonicalPerson(name=group["name"]).save()
+            canonical = CanonicalVendor(name=group["name"]).save()
 
-        for raw in group["matches"]:
-            name, _, context = raw.partition(" (")
-            name = name.strip()
-            context = context.strip(" )")
-
-            # Signature
-            signatures = Signature.nodes.filter(name=name)
-            for s in signatures:
-                if not context or s.title == context:
-                    s.is_canonical_person.connect(canonical)
-
-            # Role
-            roles = Role.nodes.filter(resource_name=name)
-            for r in roles:
-                if not context or r.level == context:
-                    r.assigned_to.connect(canonical)
-
-            # Party
-            parties = Party.nodes.filter(name=name)
-            for p in parties:
-                if not context or p.type == context:
-                    p.is_canonical_person.connect(canonical)
+        for variant in group["matches"]:
+            contracts = Contract.nodes.filter(vendor_name=variant)
+            for contract in contracts:
+                contract.is_with_vendor.connect(canonical)
 
 
 def run():
-    print("Fetching people from Signature, Role, Party...")
-    people = fetch_all_person_entities()
-    print(f"Total records to disambiguate: {len(people)}")
+    print("Fetching distinct vendor names from contracts...")
+    vendor_names = fetch_all_vendor_names()
+    print(f"Found {len(vendor_names)} vendor name variations.")
 
-    print("Grouping with GPT-4o...")
-    groups = group_people_with_gpt(people)
+    print("Grouping vendor names with GPT-4o...")
+    groups = group_vendors_with_gpt(vendor_names)
 
-    print("Creating CanonicalPerson nodes and linking...")
-    create_and_link_canonical_persons(groups)
+    print("Creating CanonicalVendor nodes and linking to contracts...")
+    create_and_link_canonical_vendors(groups)
 
-    print("✅ Canonical person mapping complete.")
+    print("✅ Canonical vendor mapping complete.")
 
 
 if __name__ == "__main__":
