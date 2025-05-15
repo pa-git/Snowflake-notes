@@ -1,32 +1,40 @@
-#!/bin/bash
+import re
+from datetime import datetime
+from typing import Optional
 
-# --- CONFIGURATION ---
-NEO4J_HOME="/var/lib/neo4j"                          # Update to your Neo4j install path
-DB_NAME="neo4j"                                      # Default database name
-BACKUP_DIR="/var/backups/neo4j"                      # Where to store the backups
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-DEST="$BACKUP_DIR/${DB_NAME}_backup_$TIMESTAMP"
+def parse_flexible_date(date_str: str) -> Optional[datetime.date]:
+    if not date_str or not isinstance(date_str, str):
+        return None
 
-# --- STOP NEO4J ---
-echo "Stopping Neo4j..."
-sudo ${NEO4J_HOME}/bin/neo4j stop
+    date_str = date_str.strip()
 
-# --- CREATE BACKUP DIRECTORY ---
-echo "Creating backup directory at $DEST..."
-mkdir -p "$DEST"
+    if date_str.lower() in ["unknown", "n/a", "na", "none", "-", "--", ""]:
+        return None
 
-# --- COPY DATABASE FILES ---
-echo "Backing up database files..."
-sudo cp -r ${NEO4J_HOME}/data/databases/$DB_NAME "$DEST/"
-sudo cp -r ${NEO4J_HOME}/data/transactions/$DB_NAME "$DEST/"
+    # Remove ordinal suffixes: 1st -> 1, 2nd -> 2, 3rd -> 3, 4th -> 4
+    date_str = re.sub(r'(\d{1,2})(st|nd|rd|th)', r'\1', date_str, flags=re.IGNORECASE)
 
-# --- OPTIONAL: BACKUP CONFIG (uncomment if needed) ---
-# echo "Backing up configuration..."
-# sudo cp -r ${NEO4J_HOME}/conf "$DEST/conf"
+    formats = [
+        "%Y-%m-%d",
+        "%d-%b-%Y",
+        "%d-%B-%Y",
+        "%m/%d/%Y",
+        "%d/%m/%Y",
+        "%Y/%m/%d",
+        "%d.%m.%Y",
+        "%b %d, %Y",
+        "%B %d, %Y",
+        "%d %b %Y",
+        "%d %B %Y",
+    ]
 
-# --- START NEO4J ---
-echo "Restarting Neo4j..."
-sudo ${NEO4J_HOME}/bin/neo4j start
+    for fmt in formats:
+        try:
+            return datetime.strptime(date_str, fmt).date()
+        except ValueError:
+            continue
 
-# --- DONE ---
-echo "Backup completed successfully to $DEST"
+    try:
+        return datetime.fromisoformat(date_str).date()
+    except ValueError:
+        return None
