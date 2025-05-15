@@ -1,146 +1,19 @@
-Node: Contract
-- file_name
-- vendor_name
-- type
-- summary_description
-- start_date
-- end_date
-- base_fee
-- total_fee
-- exclusions[]
-- payment_terms
-- billing_instructions
-- exceptions_or_notes[]
-- funding_request_id
-- division
+def batched_locations(locations, batch_size=100):
+    for i in range(0, len(locations), batch_size):
+        yield locations[i:i + batch_size]
 
-Node: Service
-- name
-- description
-- period
-- coverage
-- locations[]
-- days
-- quantity
-- unit_price
-- total
-- notes[]
 
-Node: Role
-- name
-- resource_name
-- description
-- level
-- location
-- hours_committed
-- rate_amount
-- rate_currency
-- rate_unit
-- total_fees
-- billing_type
-- schedule_reference
-- project
+def run():
+    print("Fetching all raw location strings...")
+    raw_locations = fetch_all_raw_locations()
+    print(f"Found {len(raw_locations)} unique raw locations.")
 
-Node: Party
-- name
-- type
-- address
-- context
+    for batch in batched_locations(raw_locations, batch_size=100):
+        print(f"\nProcessing batch: {batch[0]} ... {batch[-1]}")
+        groups = group_and_enrich_locations_with_gpt(batch)
+        create_and_link_locations(groups)
 
-Node: Signature
-- type
-- name
-- title
-- date
+    print("✅ Canonical location mapping complete.")
 
-Node: ServiceLevelAgreement
-- name
-- description
-- target
-- metric
-- unit
-- frequency
-- applies_to[]
-- penalty_clause
-- enforcement_method
 
-Node: EngagementScope
-- core_applications[]
-- supporting_applications[]
-- key_activities[]
-- assumptions[]
-- expectations[]
-- conditions[]
-
-Node: Initiative
-- name
-- description
-
-Node: Project
-- name
-- description
-- start_date
-- end_date
-- status
-
-Node: DeliverableAndInvoice
-- deliverable
-- delivery_date
-- invoice_amount_usd
-- percentage
-
-Node: FeeBreakdown
-- event
-- fee
-
-Node: CanonicalPerson
-- name
-
-Node: CanonicalRole
-- name
-- description
-
-Node: CanonicalService
-- name
-- description
-
-Node: CanonicalVendor
-- name
-
-Node: CanonicalDivision
-- name
-
-Node: CanonicalLocation
-- name
-- address
-- city
-- state
-- country
-- continent
-
-------------
-
-(Contract)-[:HAS_FEE_BREAKDOWN]->(FeeBreakdown)
-(Contract)-[:SIGNED_BY]->(Signature)
-(Contract)-[:INCLUDES_SERVICE]->(Service)
-(Contract)-[:INCLUDES_ROLE]->(Role)
-(Contract)-[:GOVERNED_BY_SLA]->(ServiceLevelAgreement)
-(Contract)-[:HAS_ENGAGEMENT_SCOPE]->(EngagementScope)
-(Contract)-[:ASSOCIATED_WITH_INITIATIVE]->(Initiative)
-(Contract)-[:ASSOCIATED_WITH_PROJECT]->(Project)
-(Contract)-[:HAS_DELIVERABLE_INVOICE]->(DeliverableAndInvoice)
-(Contract)-[:INVOLVES_PARTY]->(Party)
-(Contract)-[:IS_WITH_VENDOR]->(CanonicalVendor)
-(Contract)-[:IS_FOR_DIVISION]->(CanonicalDivision)
-
-(Service)-[:IS_CANONICAL_SERVICE]->(CanonicalService)
-(Service)-[:PROVIDED_AT]->(CanonicalLocation)
-
-(Role)-[:IS_CANONICAL_ROLE]->(CanonicalRole)
-(Role)-[:ASSIGNED_TO]->(CanonicalPerson)
-(Role)-[:LOCATED_AT]->(CanonicalLocation)
-
-(Signature)-[:IS_CANONICAL_PERSON]->(CanonicalPerson)
-
-(Party)-[:IS_CANONICAL_PERSON]->(CanonicalPerson)
-(Party)-[:LOCATED_AT]->(CanonicalLocation)
+if not role.located_at.is_connected(canonical):
