@@ -6,10 +6,12 @@ def create_canonical_services(groupings):
                 name=group["name"],
                 description=group.get("description")
             ).save()
+
         for match in group["matches"]:
-            service = Service.nodes.get_or_none(name=match)
-            if service:
+            services = Service.nodes.filter(name=match)
+            for service in services:
                 service.is_canonical_service.connect(canonical)
+
 
 def create_canonical_roles(groupings):
     for group in groupings:
@@ -19,7 +21,8 @@ def create_canonical_roles(groupings):
                 name=group["name"],
                 description=group.get("description")
             ).save()
+
         for match in group["matches"]:
-            role = Role.nodes.get_or_none(name=match)
-            if role:
+            roles = Role.nodes.filter(name=match)
+            for role in roles:
                 role.is_canonical_role.connect(canonical)
