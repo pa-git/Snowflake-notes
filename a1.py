@@ -9,32 +9,39 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
-def fetch_people(source_type):
-    if source_type == "Signature":
-        results, _ = db.cypher_query("MATCH (n:Signature) RETURN n.name, n.title")
-        return [{"source": "Signature", "name": n.strip(), "context": t or ""} for n, t in results if n]
+def fetch_all_person_entities():
+    signatures, _ = db.cypher_query("MATCH (n:Signature) RETURN n.name, n.title")
+    roles, _ = db.cypher_query("MATCH (n:Role) RETURN n.resource_name, n.level")
+    parties, _ = db.cypher_query("MATCH (n:Party) RETURN n.name, n.type")
 
-    elif source_type == "Role":
-        results, _ = db.cypher_query("MATCH (n:Role) RETURN n.resource_name, n.level")
-        return [{"source": "Role", "name": n.strip(), "context": l or ""} for n, l in results if n]
+    people = []
 
-    elif source_type == "Party":
-        results, _ = db.cypher_query("MATCH (n:Party) RETURN n.name, n.type")
-        return [{"source": "Party", "name": n.strip(), "context": t or ""} for n, t in results if n]
+    for name, title in signatures:
+        if name:
+            people.append({"source": "Signature", "name": name.strip(), "context": title or ""})
 
-    return []
+    for name, level in roles:
+        if name:
+            people.append({"source": "Role", "name": name.strip(), "context": level or ""})
+
+    for name, type_ in parties:
+        if name:
+            people.append({"source": "Party", "name": name.strip(), "context": type_ or ""})
+
+    return people
 
 
-def group_people_with_gpt(people, label):
+def group_people_with_gpt(people_batch):
     system_prompt = (
-        "You are a data deduplication expert. Group similar people who appear under slightly different "
-        "names and contexts (e.g., title, role, or type). Use clues to disambiguate and deduplicate."
+        "You are a data deduplication expert. Your job is to group similar real-world persons "
+        "who might appear under slightly different names and roles in different systems. "
+        "Use name and context clues to disambiguate."
     )
 
-    joined = "\n".join(f"- {p['name']} ({p['context']})" for p in people)
+    items = "\n".join(f"- {p['name']} ({p['context']})" for p in people_batch)
 
     user_prompt = f"""
-Group the following {label} by likely real identity.
+Group the following people by likely real identity.
 
 For each group, return:
 - "name": the canonical person name
@@ -44,12 +51,12 @@ Respond in JSON format like:
 [
   {{
     "name": "John Wolfgang",
-    "matches": ["John Wolfgang (z/OS SME)", "J. Wolfgang"]
+    "matches": ["John Wolfgang (z/OS SME)", "J. Wolfgang", "John W."]
   }}
 ]
 
-List:
-{joined}
+People:
+{items}
 """
 
     response = openai.ChatCompletion.create(
@@ -60,54 +67,62 @@ List:
         ],
         temperature=0
     )
+
     return json.loads(response.choices[0].message.content)
 
 
-def create_and_link(group, source_type):
-    canonical = CanonicalPerson.nodes.get_or_none(name=group["name"])
-    if not canonical:
-        canonical = CanonicalPerson(name=group["name"]).save()
+def create_and_link_canonical_persons(groups):
+    for group in groups:
+        canonical = CanonicalPerson.nodes.get_or_none(name=group["name"])
+        if not canonical:
+            canonical = CanonicalPerson(name=group["name"]).save()
 
-    for raw in group["matches"]:
-        name, _, context = raw.partition(" (")
-        name = name.strip()
-        context = context.strip(" )")
+        for raw in group["matches"]:
+            name, _, context = raw.partition(" (")
+            name = name.strip()
+            context = context.strip(" )")
 
-        if source_type == "Signature":
-            nodes = Signature.nodes.filter(name=name)
-            for n in nodes:
-                if not context or n.title == context:
-                    n.is_canonical_person.connect(canonical)
+            # Signature
+            signatures = Signature.nodes.filter(name=name)
+            for s in signatures:
+                if not context or s.title == context:
+                    s.is_canonical_person.connect(canonical)
 
-        elif source_type == "Role":
-            nodes = Role.nodes.filter(resource_name=name)
-            for n in nodes:
-                if not context or n.level == context:
-                    n.assigned_to.connect(canonical)
+            # Role
+            roles = Role.nodes.filter(resource_name=name)
+            for r in roles:
+                if not context or r.level == context:
+                    r.assigned_to.connect(canonical)
 
-        elif source_type == "Party":
-            nodes = Party.nodes.filter(name=name)
-            for n in nodes:
-                if not context or n.type == context:
-                    n.is_canonical_person.connect(canonical)
+            # Party
+            parties = Party.nodes.filter(name=name)
+            for p in parties:
+                if not context or p.type == context:
+                    p.is_canonical_person.connect(canonical)
 
 
 def run():
-    sources = ["Signature", "Role", "Party"]
+    print("Fetching people from Signature, Role, Party...")
+    people = fetch_all_person_entities()
+    print(f"Total records to disambiguate: {len(people)}")
 
-    for source in sources:
-        print(f"\n=== Processing {source} ===")
-        people = fetch_people(source)
-        print(f"Found {len(people)} people in {source}")
+    batch_size = 100
+    total_batches = (len(people) + batch_size - 1) // batch_size
+    all_groups = []
 
-        if not people:
-            continue
+    for i in range(0, len(people), batch_size):
+        batch = people[i:i + batch_size]
+        print(f"\n🔎 Processing batch {i // batch_size + 1} of {total_batches} ({len(batch)} records)...")
+        try:
+            groups = group_people_with_gpt(batch)
+            all_groups.extend(groups)
+        except Exception as e:
+            print(f"❌ Failed to process batch {i // batch_size + 1}: {e}")
 
-        groups = group_people_with_gpt(people, label=source)
-        for group in groups:
-            create_and_link(group, source)
+    print("\n🔗 Linking to CanonicalPerson nodes...")
+    create_and_link_canonical_persons(all_groups)
 
-        print(f"✅ Done mapping canonical persons from {source}")
+    print("\n✅ Canonical person mapping complete.")
 
 
 if __name__ == "__main__":
