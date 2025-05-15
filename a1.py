@@ -1,121 +1,74 @@
-import os
-import json
-import openai
-from dotenv import load_dotenv
-from neomodel import db
-from models import CanonicalLocation, Service, Role, Party
+-- 1. Most common roles --
+MATCH (r:Role)
+RETURN r.name AS role, COUNT(*) AS count
+ORDER BY count DESC
 
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+-- 2. Average rate for the role of Manager --
+MATCH (r:Role {name: "Manager"})
+RETURN AVG(r.rate_amount) AS avg_rate
 
+-- 3. Rate by vendor for the role of Developer --
+MATCH (r:Role {name: "Developer"})<-[:INCLUDES_ROLE]-(c:Contract)-[:SIGNED_BY_VENDOR]->(v:Party)
+RETURN v.name AS vendor, AVG(r.rate_amount) AS avg_rate
+ORDER BY avg_rate DESC
 
-def fetch_all_raw_locations():
-    locations = set()
+-- 4. Do we have any contracts for QA --
+MATCH (c:Contract)-[:INCLUDES_SERVICE]->(s:Service)
+WHERE TOLOWER(s.name) CONTAINS "qa"
+RETURN DISTINCT c.file_name AS contract, s.name AS service
 
-    # Service.locations (array)
-    result, _ = db.cypher_query("MATCH (s:Service) UNWIND s.locations AS loc RETURN DISTINCT loc")
-    locations.update(loc for (loc,) in result if loc)
+-- 5. Grid of similar roles by vendors and avg rate --
+MATCH (r:Role)<-[:INCLUDES_ROLE]-(c:Contract)-[:SIGNED_BY_VENDOR]->(v:Party)
+RETURN r.name AS role, v.name AS vendor, AVG(r.rate_amount) AS avg_rate
+ORDER BY role, vendor
 
-    # Role.location
-    result, _ = db.cypher_query("MATCH (r:Role) RETURN DISTINCT r.location")
-    locations.update(loc for (loc,) in result if loc)
+-- 6. Vendors that provide QA services --
+MATCH (c:Contract)-[:INCLUDES_SERVICE]->(s:Service), (c)-[:SIGNED_BY_VENDOR]->(v:Party)
+WHERE TOLOWER(s.name) CONTAINS "qa"
+RETURN DISTINCT v.name AS vendor
 
-    # Party.address
-    result, _ = db.cypher_query("MATCH (p:Party) RETURN DISTINCT p.address")
-    locations.update(loc for (loc,) in result if loc)
+-- 7. Consultants with their start date --
+MATCH (r:Role)
+WHERE TOLOWER(r.name) CONTAINS "consultant"
+WITH r
+MATCH (r)<-[:INCLUDES_ROLE]-(c:Contract)
+RETURN DISTINCT r.resource_name AS consultant, c.start_date AS contract_start
+ORDER BY consultant
 
-    return sorted(locations)
+-- 8. All contracts for EY --
+MATCH (c:Contract)-[:SIGNED_BY_VENDOR]->(v:Party)
+WHERE TOLOWER(v.name) CONTAINS "ey"
+RETURN c.file_name AS contract, c.start_date, c.end_date
 
+-- 9. Total payments to EY --
+MATCH (c:Contract)-[:SIGNED_BY_VENDOR]->(v:Party)
+WHERE TOLOWER(v.name) CONTAINS "ey"
+RETURN v.name AS vendor, SUM(TOFLOAT(REPLACE(REPLACE(c.total_fee, '$', ''), ',', ''))) AS total_paid
 
-def group_and_enrich_locations_with_gpt(locations):
-    system_prompt = (
-        "You are a location normalization and enrichment expert. Given unstructured location strings, "
-        "return structured and standardized versions with as much detail as possible."
-    )
+-- 10. Contracts by division --
+MATCH (c:Contract)
+RETURN c.division AS division, COUNT(*) AS count
+ORDER BY count DESC
 
-    user_prompt = f"""
-Normalize the following locations. For each, return a JSON object with:
+-- 11. Vendors working with Internal Audit Division --
+MATCH (c:Contract {division: "Internal Audit"})-[:SIGNED_BY_VENDOR]->(v:Party)
+RETURN DISTINCT v.name AS vendor
 
-- "name": a human-friendly short name (e.g. "New York, NY")
-- "address": full address if available
-- "city": city name
-- "state": state or province
-- "country": country name
-- "continent": continent name
-- "matches": list of original input strings that refer to this location
+-- 12. Contracts per vendor --
+MATCH (c:Contract)-[:SIGNED_BY_VENDOR]->(v:Party)
+RETURN v.name AS vendor, COUNT(*) AS contracts
+ORDER BY contracts DESC
 
-Respond as JSON array:
-[
-  {{
-    "name": "...",
-    "address": "...",
-    "city": "...",
-    "state": "...",
-    "country": "...",
-    "continent": "...",
-    "matches": ["...", "..."]
-  }}
-]
+-- 13. Resources per role --
+MATCH (r:Role)-[:ASSIGNED_TO]->(p:CanonicalPerson)
+RETURN r.name AS role, COUNT(p) AS resource_count
+ORDER BY resource_count DESC
 
-Locations:
-{chr(10).join(f"- {loc}" for loc in locations)}
-"""
+-- 14. Developer rate statistics by vendor --
+MATCH (r:Role {name: "Developer"})<-[:INCLUDES_ROLE]-(c:Contract)-[:SIGNED_BY_VENDOR]->(v:Party)
+RETURN v.name AS vendor,
+       AVG(r.rate_amount) AS avg_rate,
+       MAX(r.rate_amount) AS max_rate,
+       MIN(r.rate_amount) AS min_rate
+ORDER BY avg_rate DESC
 
-    response = openai.ChatCompletion.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt.strip()}
-        ],
-        temperature=0
-    )
-    return json.loads(response.choices[0].message.content)
-
-
-def create_and_link_locations(groups):
-    for group in groups:
-        canonical = CanonicalLocation.nodes.get_or_none(name=group["name"])
-        if not canonical:
-            canonical = CanonicalLocation(
-                name=group["name"],
-                address=group.get("address"),
-                city=group.get("city"),
-                state=group.get("state"),
-                country=group.get("country"),
-                continent=group.get("continent")
-            ).save()
-
-        for match in group["matches"]:
-            # Link Services
-            services, _ = db.cypher_query("MATCH (s:Service) WHERE $val IN s.locations RETURN s", {"val": match})
-            for row in services:
-                s = Service.inflate(row[0])
-                s.provided_at.connect(canonical)
-
-            # Link Roles
-            roles = Role.nodes.filter(location=match)
-            for r in roles:
-                r.located_at.connect(canonical)
-
-            # Link Parties
-            parties = Party.nodes.filter(address=match)
-            for p in parties:
-                p.located_at.connect(canonical)
-
-
-def run():
-    print("Fetching all raw location strings...")
-    raw_locations = fetch_all_raw_locations()
-    print(f"Found {len(raw_locations)} unique raw locations.")
-
-    print("Sending locations to GPT-4o for standardization...")
-    groups = group_and_enrich_locations_with_gpt(raw_locations)
-
-    print("Creating CanonicalLocation nodes and linking...")
-    create_and_link_locations(groups)
-
-    print("✅ Canonical location mapping complete.")
-
-
-if __name__ == "__main__":
-    run()
