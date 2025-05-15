@@ -1,74 +1,146 @@
--- 1. Most common roles --
-MATCH (r:Role)
-RETURN r.name AS role, COUNT(*) AS count
-ORDER BY count DESC
+Node: Contract
+- file_name
+- vendor_name
+- type
+- summary_description
+- start_date
+- end_date
+- base_fee
+- total_fee
+- exclusions[]
+- payment_terms
+- billing_instructions
+- exceptions_or_notes[]
+- funding_request_id
+- division
 
--- 2. Average rate for the role of Manager --
-MATCH (r:Role {name: "Manager"})
-RETURN AVG(r.rate_amount) AS avg_rate
+Node: Service
+- name
+- description
+- period
+- coverage
+- locations[]
+- days
+- quantity
+- unit_price
+- total
+- notes[]
 
--- 3. Rate by vendor for the role of Developer --
-MATCH (r:Role {name: "Developer"})<-[:INCLUDES_ROLE]-(c:Contract)-[:SIGNED_BY_VENDOR]->(v:Party)
-RETURN v.name AS vendor, AVG(r.rate_amount) AS avg_rate
-ORDER BY avg_rate DESC
+Node: Role
+- name
+- resource_name
+- description
+- level
+- location
+- hours_committed
+- rate_amount
+- rate_currency
+- rate_unit
+- total_fees
+- billing_type
+- schedule_reference
+- project
 
--- 4. Do we have any contracts for QA --
-MATCH (c:Contract)-[:INCLUDES_SERVICE]->(s:Service)
-WHERE TOLOWER(s.name) CONTAINS "qa"
-RETURN DISTINCT c.file_name AS contract, s.name AS service
+Node: Party
+- name
+- type
+- address
+- context
 
--- 5. Grid of similar roles by vendors and avg rate --
-MATCH (r:Role)<-[:INCLUDES_ROLE]-(c:Contract)-[:SIGNED_BY_VENDOR]->(v:Party)
-RETURN r.name AS role, v.name AS vendor, AVG(r.rate_amount) AS avg_rate
-ORDER BY role, vendor
+Node: Signature
+- type
+- name
+- title
+- date
 
--- 6. Vendors that provide QA services --
-MATCH (c:Contract)-[:INCLUDES_SERVICE]->(s:Service), (c)-[:SIGNED_BY_VENDOR]->(v:Party)
-WHERE TOLOWER(s.name) CONTAINS "qa"
-RETURN DISTINCT v.name AS vendor
+Node: ServiceLevelAgreement
+- name
+- description
+- target
+- metric
+- unit
+- frequency
+- applies_to[]
+- penalty_clause
+- enforcement_method
 
--- 7. Consultants with their start date --
-MATCH (r:Role)
-WHERE TOLOWER(r.name) CONTAINS "consultant"
-WITH r
-MATCH (r)<-[:INCLUDES_ROLE]-(c:Contract)
-RETURN DISTINCT r.resource_name AS consultant, c.start_date AS contract_start
-ORDER BY consultant
+Node: EngagementScope
+- core_applications[]
+- supporting_applications[]
+- key_activities[]
+- assumptions[]
+- expectations[]
+- conditions[]
 
--- 8. All contracts for EY --
-MATCH (c:Contract)-[:SIGNED_BY_VENDOR]->(v:Party)
-WHERE TOLOWER(v.name) CONTAINS "ey"
-RETURN c.file_name AS contract, c.start_date, c.end_date
+Node: Initiative
+- name
+- description
 
--- 9. Total payments to EY --
-MATCH (c:Contract)-[:SIGNED_BY_VENDOR]->(v:Party)
-WHERE TOLOWER(v.name) CONTAINS "ey"
-RETURN v.name AS vendor, SUM(TOFLOAT(REPLACE(REPLACE(c.total_fee, '$', ''), ',', ''))) AS total_paid
+Node: Project
+- name
+- description
+- start_date
+- end_date
+- status
 
--- 10. Contracts by division --
-MATCH (c:Contract)
-RETURN c.division AS division, COUNT(*) AS count
-ORDER BY count DESC
+Node: DeliverableAndInvoice
+- deliverable
+- delivery_date
+- invoice_amount_usd
+- percentage
 
--- 11. Vendors working with Internal Audit Division --
-MATCH (c:Contract {division: "Internal Audit"})-[:SIGNED_BY_VENDOR]->(v:Party)
-RETURN DISTINCT v.name AS vendor
+Node: FeeBreakdown
+- event
+- fee
 
--- 12. Contracts per vendor --
-MATCH (c:Contract)-[:SIGNED_BY_VENDOR]->(v:Party)
-RETURN v.name AS vendor, COUNT(*) AS contracts
-ORDER BY contracts DESC
+Node: CanonicalPerson
+- name
 
--- 13. Resources per role --
-MATCH (r:Role)-[:ASSIGNED_TO]->(p:CanonicalPerson)
-RETURN r.name AS role, COUNT(p) AS resource_count
-ORDER BY resource_count DESC
+Node: CanonicalRole
+- name
+- description
 
--- 14. Developer rate statistics by vendor --
-MATCH (r:Role {name: "Developer"})<-[:INCLUDES_ROLE]-(c:Contract)-[:SIGNED_BY_VENDOR]->(v:Party)
-RETURN v.name AS vendor,
-       AVG(r.rate_amount) AS avg_rate,
-       MAX(r.rate_amount) AS max_rate,
-       MIN(r.rate_amount) AS min_rate
-ORDER BY avg_rate DESC
+Node: CanonicalService
+- name
+- description
 
+Node: CanonicalVendor
+- name
+
+Node: CanonicalDivision
+- name
+
+Node: CanonicalLocation
+- name
+- address
+- city
+- state
+- country
+- continent
+
+------------
+
+(Contract)-[:HAS_FEE_BREAKDOWN]->(FeeBreakdown)
+(Contract)-[:SIGNED_BY]->(Signature)
+(Contract)-[:INCLUDES_SERVICE]->(Service)
+(Contract)-[:INCLUDES_ROLE]->(Role)
+(Contract)-[:GOVERNED_BY_SLA]->(ServiceLevelAgreement)
+(Contract)-[:HAS_ENGAGEMENT_SCOPE]->(EngagementScope)
+(Contract)-[:ASSOCIATED_WITH_INITIATIVE]->(Initiative)
+(Contract)-[:ASSOCIATED_WITH_PROJECT]->(Project)
+(Contract)-[:HAS_DELIVERABLE_INVOICE]->(DeliverableAndInvoice)
+(Contract)-[:INVOLVES_PARTY]->(Party)
+(Contract)-[:IS_WITH_VENDOR]->(CanonicalVendor)
+(Contract)-[:IS_FOR_DIVISION]->(CanonicalDivision)
+
+(Service)-[:IS_CANONICAL_SERVICE]->(CanonicalService)
+(Service)-[:PROVIDED_AT]->(CanonicalLocation)
+
+(Role)-[:IS_CANONICAL_ROLE]->(CanonicalRole)
+(Role)-[:ASSIGNED_TO]->(CanonicalPerson)
+(Role)-[:LOCATED_AT]->(CanonicalLocation)
+
+(Signature)-[:IS_CANONICAL_PERSON]->(CanonicalPerson)
+
+(Party)-[:IS_CANONICAL_PERSON]->(CanonicalPerson)
+(Party)-[:LOCATED_AT]->(CanonicalLocation)
