@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from neomodel import db
 from models import Contract, CanonicalVendor
 
+# Load OpenAI key
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -17,27 +18,29 @@ def fetch_all_vendor_names():
 def group_vendors_with_gpt(vendor_names):
     system_prompt = (
         "You are a data normalization expert for enterprise vendors. "
-        "Group vendor names that refer to the same organization even if formatting varies "
-        "(e.g. Maxus Group vs. Maxus Group, Inc.)."
+        "Group vendor names that refer to the same real-world organization, "
+        "even if formatting, casing, or suffixes (Inc., Ltd., etc.) vary."
     )
 
+    vendor_list = "\n".join(f"- {name}" for name in vendor_names)
+
     user_prompt = f"""
-Group the following vendor names into canonical vendor categories.
+Group the following vendor names into canonical categories.
 
 For each group, return:
 - "name": the canonical vendor name
-- "matches": list of vendor name variations that refer to this vendor
+- "matches": list of variants that refer to this vendor
 
 Respond in JSON format like:
 [
   {{
     "name": "Maxus Group, Inc.",
-    "matches": ["Maxus Group", "Maxus Group, Inc.", "MAXUS GROUP INC"]
+    "matches": ["Maxus Group", "MAXUS GROUP INC", "Maxus Group, Inc."]
   }}
 ]
 
 Vendors:
-{"\n".join(f"- {v}" for v in vendor_names)}
+{vendor_list}
 """
 
     response = openai.ChatCompletion.create(
@@ -69,13 +72,13 @@ def run():
     vendor_names = fetch_all_vendor_names()
     print(f"Found {len(vendor_names)} vendor name variations.")
 
-    print("Grouping vendor names with GPT-4o...")
+    print("\nGrouping vendor names with GPT-4o...")
     groups = group_vendors_with_gpt(vendor_names)
 
-    print("Creating CanonicalVendor nodes and linking to contracts...")
+    print("\nCreating CanonicalVendor nodes and linking to contracts...")
     create_and_link_canonical_vendors(groups)
 
-    print("✅ Canonical vendor mapping complete.")
+    print("\n✅ Canonical vendor mapping complete.")
 
 
 if __name__ == "__main__":
