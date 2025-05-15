@@ -1,40 +1,19 @@
-import re
-from datetime import datetime
-from typing import Optional
+class ArtifactLookup:
+    def __init__(self, csv_path: str):
+        # Load CSV with necessary columns
+        df = pd.read_csv(csv_path, usecols=["Funding_Request_ID", "Division", "Artifact_name"])
 
-def parse_flexible_date(date_str: str) -> Optional[datetime.date]:
-    if not date_str or not isinstance(date_str, str):
-        return None
+        # Create a cleaned version of Artifact_name: strip and remove extension
+        df["clean_name"] = df["Artifact_name"].apply(
+            lambda name: os.path.splitext(name.strip())[0]
+        )
 
-    date_str = date_str.strip()
+        # Build a dictionary for fast lookup
+        self.lookup = {
+            row["clean_name"]: (row["Funding_Request_ID"], row["Division"])
+            for _, row in df.iterrows()
+        }
 
-    if date_str.lower() in ["unknown", "n/a", "na", "none", "-", "--", ""]:
-        return None
-
-    # Remove ordinal suffixes: 1st -> 1, 2nd -> 2, 3rd -> 3, 4th -> 4
-    date_str = re.sub(r'(\d{1,2})(st|nd|rd|th)', r'\1', date_str, flags=re.IGNORECASE)
-
-    formats = [
-        "%Y-%m-%d",
-        "%d-%b-%Y",
-        "%d-%B-%Y",
-        "%m/%d/%Y",
-        "%d/%m/%Y",
-        "%Y/%m/%d",
-        "%d.%m.%Y",
-        "%b %d, %Y",
-        "%B %d, %Y",
-        "%d %b %Y",
-        "%d %B %Y",
-    ]
-
-    for fmt in formats:
-        try:
-            return datetime.strptime(date_str, fmt).date()
-        except ValueError:
-            continue
-
-    try:
-        return datetime.fromisoformat(date_str).date()
-    except ValueError:
-        return None
+    def get_funding_info(self, artifact_name: str):
+        # artifact_name is already clean (no extension, trimmed)
+        return self.lookup.get(artifact_name, (None, None))
