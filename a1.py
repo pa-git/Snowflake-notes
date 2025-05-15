@@ -3,60 +3,62 @@ import json
 import openai
 from dotenv import load_dotenv
 from neomodel import db
-from models import CanonicalPerson, Signature, Party, Role
+from models import CanonicalLocation, Service, Role, Party
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
-def fetch_all_person_entities():
-    signatures, _ = db.cypher_query("MATCH (n:Signature) RETURN n.name, n.title")
-    roles, _ = db.cypher_query("MATCH (n:Role) RETURN n.resource_name, n.level")
-    parties, _ = db.cypher_query("MATCH (n:Party) RETURN n.name, n.type")
+def fetch_all_raw_locations():
+    locations = set()
 
-    people = []
+    # Service.locations (array)
+    result, _ = db.cypher_query("MATCH (s:Service) UNWIND s.locations AS loc RETURN DISTINCT loc")
+    locations.update(loc for (loc,) in result if loc)
 
-    for name, title in signatures:
-        if name:
-            people.append({"source": "Signature", "name": name.strip(), "context": title or ""})
+    # Role.location
+    result, _ = db.cypher_query("MATCH (r:Role) RETURN DISTINCT r.location")
+    locations.update(loc for (loc,) in result if loc)
 
-    for name, level in roles:
-        if name:
-            people.append({"source": "Role", "name": name.strip(), "context": level or ""})
+    # Party.address
+    result, _ = db.cypher_query("MATCH (p:Party) RETURN DISTINCT p.address")
+    locations.update(loc for (loc,) in result if loc)
 
-    for name, type_ in parties:
-        if name:
-            people.append({"source": "Party", "name": name.strip(), "context": type_ or ""})
-
-    return people
+    return sorted(locations)
 
 
-def group_people_with_gpt(people_batch):
+def group_and_enrich_locations_with_gpt(locations):
     system_prompt = (
-        "You are a data deduplication expert. Your job is to group similar real-world persons "
-        "who might appear under slightly different names and roles in different systems. "
-        "Use name and context clues to disambiguate."
+        "You are a location normalization and enrichment expert. Given unstructured location strings, "
+        "return structured and standardized versions with as much detail as possible."
     )
 
-    items = "\n".join(f"- {p['name']} ({p['context']})" for p in people_batch)
-
     user_prompt = f"""
-Group the following people by likely real identity.
+Normalize the following locations. For each, return a JSON object with:
 
-For each group, return:
-- "name": the canonical person name
-- "matches": list of names (with optional context) that refer to that person
+- "name": a human-friendly short name (e.g. "New York, NY")
+- "address": full address if available
+- "city": city name
+- "state": state or province
+- "country": country name
+- "continent": continent name
+- "matches": list of original input strings that refer to this location
 
-Respond in JSON format like:
+Respond as JSON array:
 [
   {{
-    "name": "John Wolfgang",
-    "matches": ["John Wolfgang (z/OS SME)", "J. Wolfgang", "John W."]
+    "name": "...",
+    "address": "...",
+    "city": "...",
+    "state": "...",
+    "country": "...",
+    "continent": "...",
+    "matches": ["...", "..."]
   }}
 ]
 
-People:
-{items}
+Locations:
+{chr(10).join(f"- {loc}" for loc in locations)}
 """
 
     response = openai.ChatCompletion.create(
@@ -67,62 +69,52 @@ People:
         ],
         temperature=0
     )
-
     return json.loads(response.choices[0].message.content)
 
 
-def create_and_link_canonical_persons(groups):
+def create_and_link_locations(groups):
     for group in groups:
-        canonical = CanonicalPerson.nodes.get_or_none(name=group["name"])
+        canonical = CanonicalLocation.nodes.get_or_none(name=group["name"])
         if not canonical:
-            canonical = CanonicalPerson(name=group["name"]).save()
+            canonical = CanonicalLocation(
+                name=group["name"],
+                address=group.get("address"),
+                city=group.get("city"),
+                state=group.get("state"),
+                country=group.get("country"),
+                continent=group.get("continent")
+            ).save()
 
-        for raw in group["matches"]:
-            name, _, context = raw.partition(" (")
-            name = name.strip()
-            context = context.strip(" )")
+        for match in group["matches"]:
+            # Link Services
+            services, _ = db.cypher_query("MATCH (s:Service) WHERE $val IN s.locations RETURN s", {"val": match})
+            for row in services:
+                s = Service.inflate(row[0])
+                s.provided_at.connect(canonical)
 
-            # Signature
-            signatures = Signature.nodes.filter(name=name)
-            for s in signatures:
-                if not context or s.title == context:
-                    s.is_canonical_person.connect(canonical)
-
-            # Role
-            roles = Role.nodes.filter(resource_name=name)
+            # Link Roles
+            roles = Role.nodes.filter(location=match)
             for r in roles:
-                if not context or r.level == context:
-                    r.assigned_to.connect(canonical)
+                r.located_at.connect(canonical)
 
-            # Party
-            parties = Party.nodes.filter(name=name)
+            # Link Parties
+            parties = Party.nodes.filter(address=match)
             for p in parties:
-                if not context or p.type == context:
-                    p.is_canonical_person.connect(canonical)
+                p.located_at.connect(canonical)
 
 
 def run():
-    print("Fetching people from Signature, Role, Party...")
-    people = fetch_all_person_entities()
-    print(f"Total records to disambiguate: {len(people)}")
+    print("Fetching all raw location strings...")
+    raw_locations = fetch_all_raw_locations()
+    print(f"Found {len(raw_locations)} unique raw locations.")
 
-    batch_size = 100
-    total_batches = (len(people) + batch_size - 1) // batch_size
-    all_groups = []
+    print("Sending locations to GPT-4o for standardization...")
+    groups = group_and_enrich_locations_with_gpt(raw_locations)
 
-    for i in range(0, len(people), batch_size):
-        batch = people[i:i + batch_size]
-        print(f"\n🔎 Processing batch {i // batch_size + 1} of {total_batches} ({len(batch)} records)...")
-        try:
-            groups = group_people_with_gpt(batch)
-            all_groups.extend(groups)
-        except Exception as e:
-            print(f"❌ Failed to process batch {i // batch_size + 1}: {e}")
+    print("Creating CanonicalLocation nodes and linking...")
+    create_and_link_locations(groups)
 
-    print("\n🔗 Linking to CanonicalPerson nodes...")
-    create_and_link_canonical_persons(all_groups)
-
-    print("\n✅ Canonical person mapping complete.")
+    print("✅ Canonical location mapping complete.")
 
 
 if __name__ == "__main__":
