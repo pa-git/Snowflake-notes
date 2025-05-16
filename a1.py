@@ -1,5 +1,1 @@
-MATCH (r:Role)-[:IS_CANONICAL_ROLE]->(cr:CanonicalRole)
-MATCH (c:Contract)-[:INCLUDES_ROLE]->(r)
-MATCH (c)-[:IS_FOR_DIVISION]->(d:CanonicalDivision)
-WHERE cr.name CONTAINS 'Software'
-RETURN cr.name, d.name, COUNT(r)
+When a node connects to multiple other nodes via separate relationships (e.g., Contract → Role and Contract → Division), use separate MATCH clauses instead of chaining them in a single path.
