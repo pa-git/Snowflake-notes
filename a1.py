@@ -1,6 +1,4 @@
 description: |
-  Answer the question using the conversation history, metadata, or Neo4j knowledge graph if needed.
-
   <CONVERSATION_HISTORY>
   {conversation_history}
   </CONVERSATION_HISTORY>
@@ -10,14 +8,16 @@ description: |
   </LATEST_USER_INPUT>
 
   <INSTRUCTIONS>
-  - Use the information in the conversation history or metadata whenever possible.
+  Answer the question using the conversation history, metadata, or Neo4j knowledge graph if needed.
+
+  - Use the conversation history and metadata whenever possible.
   - Only generate a Cypher query if the required data is not already available.
-  - Generate read-only Cypher queries only (no writes, updates, or deletes).
-  - Do not include or return the Cypher query in your response.
-  - Use the `execute_query` tool to run the query and retrieve results.
-  - Present your response clearly in natural language.
-  - Use a Markdown table for structured data if helpful, but never enclose it in triple backticks.
+  - Only generate read-only Cypher queries (no writes, updates, or deletes).
+  - Do not include or return the Cypher query text in your response.
+  - Use the `execute_query` tool to run the query and retrieve results if needed.
+  - Present your full response clearly in natural language.
+  - Use a Markdown table for structured data if helpful, but never use triple backticks or code fences.
   </INSTRUCTIONS>
 
 expected_output: |
-  A clear, natural language response. Use a Markdown table for data when needed, but never include triple backticks or markdown code fences.
+  A complete, clear, and context-aware response in natural language. Use a Markdown table to present structured data when appropriate, without using triple backticks.
