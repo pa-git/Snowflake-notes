@@ -1,9 +1,18 @@
-<TIP>
-If a Cypher query returns no results, consider common issues:
+<TIPS>
+- Avoid chaining multiple relationships in a single path unless you're certain the connections exist as such. Use separate MATCH clauses when needed.
 
-1. **Exact string match** – Neo4j is case-sensitive. Double-check names, especially for labels or node properties like `division`, `vendor`, or `role`.
+- Always use relationships exactly as defined in the SCHEMA under <RELATIONSHIPS>. Do not invent or assume relationships that aren’t explicitly listed.
 
-2. **Relationship structure** – Queries often fail when multiple relationships are incorrectly chained. For example, a contract may link separately to a division and a vendor, not through a path. Use separate `MATCH` clauses when needed.
+- When identifying the most common roles or services, use CanonicalRole and CanonicalService nodes to ensure normalized comparisons.
 
-3. **Missing joint relationships** – The node you're querying may exist, but not in combination. Always confirm that the same contract connects to both nodes involved.
-</TIP>
+- When working with rates, always convert values to USD before aggregating or comparing across contracts.
+
+- If a user refers to a vendor using an acronym or shorthand, resolve it to the vendor’s full company name before querying.
+
+- When returning tables that include counts, totals, or amounts, sort the results in descending order to highlight the most significant values first.
+
+- If a query returns no results, double-check for:
+  • Case-sensitive or misspelled property values (e.g., division names)  
+  • Incorrectly chained relationships that should be modeled separately  
+  • Missing joint links—ensure the same node (e.g., a Contract) connects to all queried entities
+</TIPS>
