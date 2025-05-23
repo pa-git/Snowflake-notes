@@ -1,14 +1,19 @@
-Here’s the updated prompt instruction with the example query modified to use the **canonical location**:
+def format_history_as_markdown(history):
+    # Only keep the last 10 items (5 turns)
+    history = history[-10:]
 
----
+    md = ""
+    for i in range(0, len(history), 2):
+        turn_num = (i // 2) + 1
+        md += f"---- Turn {turn_num} ----\n"
 
-> 1. Do **not** use `GROUP BY` in Cypher. Instead, use a `WITH` clause to perform aggregations like `AVG`, `COUNT`, etc. For example:
->
-> ```cypher
-> MATCH (r:Role)-[:IS_CANONICAL_ROLE]->(cr:CanonicalRole {name: "Resource and Personnel Management"})
-> MATCH (r)-[:IS_IN_LOCATION]->(cl:CanonicalLocation)
-> WITH cl.country AS country, cl.city AS city, r.level AS level, r.rate_currency AS currency, AVG(r.rate_amount) AS average_rate
-> RETURN country, city, level, currency, average_rate
-> ```
->
-> 2. When grouping or aggregating by location, always use the **canonical location node** (e.g., `CanonicalLocation`) to ensure consistent and normalized geographic data.
+        for j in range(2):
+            if i + j < len(history):
+                msg = history[i + j]
+                author = msg["author"].capitalize()
+                content = msg["content"].strip()
+                md += f"**{author}:** {content}\n"
+
+        md += "\n"
+
+    return md
