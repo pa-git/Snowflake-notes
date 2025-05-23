@@ -1,1 +1,1 @@
-Compute average rates separately for each region and currency. Do not combine across currencies or regions. Exclude zero or invalid values. Include the region, currency, and average in the output.
+Fees and rates are region- and currency-dependent. Always group and process them by region and currency to avoid inaccurate sums or averages. Never aggregate across currencies without conversion.
