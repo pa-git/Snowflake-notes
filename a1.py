@@ -1,12 +1,10 @@
 <INSTRUCTIONS>
-Analyze the input text and the extracted services provided in context to identify the fee breakdown for each service listed in the contract.
+Analyze the input text to extract all relevant information related to the applications, key milestones, and vendor responsibilities within the project.
 
-For each service, extract:
+For each field, extract:
 
-- Service number: The number assigned to the service this fee schedule is linked to.
-- For each invoicing or fee schedule item, extract:
-  - Invoicing date: As stated in the text, or leave as an empty string if not available.
-  - Amount: The fee amount for the invoicing item.
-  - Currency: The currency of the fee (as stated or using ISO code if specified).
+- Applications: List all applications the work is being performed for, if explicitly mentioned.
+- Milestones: Identify all key milestones defined under the engagement.
+- Vendor responsibilities: Extract all responsibilities assigned to the vendor.
 
 </INSTRUCTIONS>
