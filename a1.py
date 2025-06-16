@@ -1,15 +1,15 @@
 <INSTRUCTIONS>
-Use the input text and the list of extracted services provided in the context to identify all Service Level Agreements (SLAs) associated with each service. 
-For every SLA, include its corresponding service number and extract the following fields:
+Use the input text along with the list of extracted services and associated service roles (provided in context) to identify the financial details for each service in the contract. 
+For every service, include its corresponding service number and extract the following fields:
 
-- Service number: The number assigned to the service this SLA is linked to.
-- SLA name: The title or label of the SLA.
-- SLA description: A clear explanation of what the SLA covers.
-- SLA target goal: The expected performance or delivery target defined in the SLA.
-- Metric: The specific metric used to measure SLA performance.
-- Unit of measurement: The unit in which the SLA is measured (e.g., %, hours, incidents).
-- Frequency of measurement: How often the SLA is monitored or reported (e.g., weekly, monthly).
-- Penalty clause: Indicate whether penalties apply, and include any details if present.
-- Method of enforcement: Describe how compliance with the SLA is enforced or monitored.
+- Service number: The number assigned to the service this financial data relates to.
+- Total fee before discount: The full fee amount prior to any discounts.
+- Discount value: The discount applied to the fee (as a numeric value).
+- Discount rate: The discount expressed as a percentage or value, if stated.
+- Total fee after discount: The final fee after applying the discount.
+- Currency: The currency of the total fee (use ISO code if explicitly provided).
+- Applicable taxes: Any tax amounts or descriptions provided in the contract.
+- Fee classification: Whether the fee is classified as variable, fixed, or otherwise described.
+- Additional notes: Capture any exclusions, conditions, or relevant terms related to the fees.
 
 </INSTRUCTIONS>
