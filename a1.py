@@ -1,11 +1,12 @@
 <INSTRUCTIONS>
-Analyze the input text to extract all relevant information related to initiatives or projects specified in the contract.
+Analyze the input text to extract all relevant information related to the signatories of the contract.
 
-For each initiative or project, extract:
+For each signatory, extract:
 
-- Name: Extract the name if a Morgan Stanley initiative or project is explicitly mentioned in the contract.
-- Description: Extract the description associated with the initiative or project.
-- If a field is missing in the input text, return the value as an empty string.
-- If no initiatives or projects are mentioned, return an empty array.
+- Signee number: Assign based on the order of appearance in the text (e.g., 1, 2, 3...).
+- Name: The full name of the signee.
+- Title: The professional title or role of the signee.
+- Company: The name of the company the signee represents.
+- Signature date: The date the document was signed, in YYYY-MM-DD format, using as much detail as available.
 
 </INSTRUCTIONS>
