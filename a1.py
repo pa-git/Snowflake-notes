@@ -1,10 +1,11 @@
 <INSTRUCTIONS>
-Analyze the input text to extract all relevant information related to the applications, key milestones, and vendor responsibilities within the project.
+Analyze the input text to extract all relevant information related to initiatives or projects specified in the contract.
 
-For each field, extract:
+For each initiative or project, extract:
 
-- Applications: List all applications the work is being performed for, if explicitly mentioned.
-- Milestones: Identify all key milestones defined under the engagement.
-- Vendor responsibilities: Extract all responsibilities assigned to the vendor.
+- Name: Extract the name if a Morgan Stanley initiative or project is explicitly mentioned in the contract.
+- Description: Extract the description associated with the initiative or project.
+- If a field is missing in the input text, return the value as an empty string.
+- If no initiatives or projects are mentioned, return an empty array.
 
 </INSTRUCTIONS>
