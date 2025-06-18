@@ -1,25 +1,33 @@
-<INSTRUCTIONS>
-Analyze the input text to extract all relevant information related to the commercial and engagement structure of the consulting service.
+from pydantic import BaseModel, Field
+from typing import List, Literal
 
-Extract the following fields with precision:
+class ScopeDeliveryModel(BaseModel):
+    service_function_type: Literal[
+        "operational support",
+        "software engineering",
+        "quality assurance",
+        "advisory consulting",
+        "technical implementation",
+        "system integration",
+        "application modernization",
+        "project management",
+        "other"
+    ] = Field(..., description="Primary function of the service delivered under the contract.")
 
-- engagement_model: Identify the overall commercial model used for the contract. Choose one of the following:
-  - "fixed-price": The vendor is paid a fixed amount for a defined scope of work, regardless of time or resources used.
-  - "time-and-materials": The vendor is paid based on the actual time spent and materials used.
-  - "managed service": The vendor delivers predefined services on a recurring basis, usually under SLAs, and is responsible for outcomes.
-  - "staff augmentation": The vendor supplies personnel to work under the client's direction, typically without ownership of deliverables.
+    includes_development_work: Literal[True, False] = Field(
+        ..., description="Whether the service includes hands-on development, coding, or solution delivery."
+    )
 
-- billing_basis: Determine how the vendor is compensated for the work. Choose one of the following:
-  - "milestone-based": Payment is tied to the completion of specific milestones or deliverables.
-  - "monthly retainer": The vendor is paid a fixed recurring fee (usually monthly) for ongoing services.
-  - "hourly": The vendor is paid based on the number of hours worked.
-  - "deliverable-based": Payment is tied to the submission or approval of defined deliverables.
+    focus_area_keywords: List[str] = Field(
+        ..., description="List of key topics or terms indicating the technical or business focus of the service."
+    )
 
-- duration_model: Identify the duration structure of the engagement. Choose one of the following:
-  - "ongoing": The contract supports continuous services with no fixed end date.
-  - "long-term": The contract spans a significant, predefined duration (e.g., one year or more).
-  - "project-based": The contract is tied to a specific project with a defined scope and timeline.
-  - "ad hoc": The work is requested and delivered on an as-needed, sporadic basis.
-
-You must infer each value based on the language used in the contract, such as descriptions of payment terms, engagement type, or delivery expectations. Return only the values listed above for each field.
-</INSTRUCTIONS>
+    delivery_model: Literal[
+        "dedicated team",
+        "centralized help desk",
+        "on-demand tickets",
+        "individual contributors",
+        "staff augmentation",
+        "hybrid",
+        "other"
+    ] = Field(..., description="How the service is delivered and organized from a staffing and structure perspective.")
