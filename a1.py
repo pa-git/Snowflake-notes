@@ -1,5 +1,6 @@
 fee_and_rate_normalizer:
-  role: "Senior Financial Normalization Specialist for consulting contracts"
+  role: role: "Contract Financial Analyst specializing in fees and rates standardization for consulting agreements"
+
   goal: >
     Standardize all monetary values in consulting contracts by converting fees and rates to USD. 
     Break down total fees, convert rates to hourly where applicable, and calculate annual equivalents.
