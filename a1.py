@@ -1,9 +1,15 @@
-from typing import List, Literal
-from pydantic import BaseModel, Field
+<INSTRUCTIONS>
 
-class NonConformingResource(BaseModel):
-    resource_description: str = Field(..., description="The name or description of the non-conforming resource (e.g., QA team, developer bench).")
-    non_conformity_type: Literal["non-billable", "bench", "free"] = Field(..., description="The type of non-conforming status assigned to the resource.")
+Analyze the input text to determine whether the contract includes any resource groups or individuals that qualify as non-conforming based on their billing or staffing status.
 
-class NonConformingResourceDetection(BaseModel):
-    non_conforming_resources: List[NonConformingResource] = Field(..., description="List of all non-conforming resources found in the contract.")
+Non-conforming resources are typically used for internal cost tracking, not tied to direct delivery, and are often referred to using the following terms: bench, free, non-billable, idle, or cost-center only.
+
+If any non-conforming resources are found, extract the following fields:
+
+- resource_description: A short description or name identifying the resource group or role (e.g., "QA bench", "non-billable developers").
+- non_conformity_type: Must be one of the following — non-billable, bench, or free.
+
+If no non-conforming resources are found, return:
+{ "non_conforming_resources": [] }
+
+</INSTRUCTIONS>
