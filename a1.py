@@ -1,16 +1,13 @@
 <INSTRUCTIONS>
 
-Analyze the input text to identify all financial details associated with the service described in the contract.
+Analyze the input text to extract the fee breakdown or invoicing schedule mentioned in the contract.
 
-Extract the following fields:
+For each invoicing or fee schedule item, extract:
 
-- total_fee_amount_before_discount: The total fee stated before any discounts are applied.
-- discount: The discount amount applied to the fee (expressed as a numeric value).
-- discount_rate: The discount expressed as a percentage of the original fee.
-- total_fee_amount_after_discount: The net fee amount after applying the discount.
-- total_fee_currency: The currency in which the total fee is specified (e.g., USD, EUR).
-- applicable_taxes: Any taxes, tax rates, or tax-related notes included in the contract.
-- fee_classification: Classification of the fee as variable, fixed, or any other specified type.
-- notes: Any relevant exclusions, conditions, or special terms related to the fees for this service.
+- date: The invoicing date, if specified.
+- amount: The fee amount stated for the invoicing item.
+- currency: The currency in which the fee is expressed.
+
+If any field is not explicitly mentioned in the text, return an empty string.
 
 </INSTRUCTIONS>
