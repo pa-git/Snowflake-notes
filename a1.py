@@ -1,25 +1,9 @@
-<INSTRUCTIONS>
-Analyze the Input Text to extract all milestones and their associated deliverables from contract sections such as "Milestones", "Milestone Table", or "Deliverables and Milestones".
+from typing import List, Literal
+from pydantic import BaseModel, Field
 
-For each milestone, extract the following fields:
+class NonConformingResource(BaseModel):
+    resource_description: str = Field(..., description="The name or description of the non-conforming resource (e.g., QA team, developer bench).")
+    non_conformity_type: Literal["non-billable", "bench", "free"] = Field(..., description="The type of non-conforming status assigned to the resource.")
 
-- milestone_number: The order number of the milestone, typically from a numbered list or table row.
-- milestone_title: The main heading or short phrase that labels the milestone.
-- milestone_description: A brief narrative explaining the purpose or focus of the milestone. If not explicitly stated, use a concise summary of the milestone title and activities.
-- activities: A text description of the key tasks, steps, or actions associated with achieving the milestone.
-- deliverables: A list of concrete outputs, documents, systems, or artifacts that are to be delivered for the milestone. Each item should be extracted as a separate entry under deliverables.
-- due_date: The expected or committed delivery date for the milestone. Use YYYY-MM-DD format. If no date is found, return an empty string.
-
-Output must be a JSON object following the AllMilestones model, which contains a list of Milestone objects.
-
-**Important Rules**:
-- Each milestone must include at least a title or description, activities, and due date (if available).
-- Split deliverables into individual items, even if they are listed in a single paragraph.
-- You MUST NOT invent any content. Only use what is explicitly stated.
-- You MUST return strictly valid JSON. Do not include comments, explanations, or formatting syntax like `json` or triple backticks.
-
-If no milestones are found, return:
-{
-  "milestones": []
-}
-</INSTRUCTIONS>
+class NonConformingResourceDetection(BaseModel):
+    non_conforming_resources: List[NonConformingResource] = Field(..., description="List of all non-conforming resources found in the contract.")
