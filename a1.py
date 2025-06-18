@@ -1,10 +1,33 @@
-<INSTRUCTIONS>
-Analyze the input text to extract all relevant information related to the engagement and billing structure of the contract.
+from pydantic import BaseModel, Field
+from typing import Literal
 
-Extract the following fields:
-
-- engagement_model: Identify the overall commercial model of the contract. Examples include fixed-price, time-and-materials, managed service, or staff augmentation.
-- billing_basis: Identify how the vendor is paid. This may include milestone-based, monthly retainer, hourly, or deliverable-based arrangements.
-- duration_model: Determine the overall duration type of the engagement. Common options include ongoing, project-based, long-term, short-term, or ad hoc.
-
-</INSTRUCTIONS>
+class EngagementProfileModel(BaseModel):
+    engagement_model: Literal[
+        "fixed-price", 
+        "time-and-materials", 
+        "managed service", 
+        "staff augmentation"
+    ] = Field(
+        ...,
+        description="The overall commercial model used for the engagement"
+    )
+    
+    billing_basis: Literal[
+        "milestone-based", 
+        "monthly retainer", 
+        "hourly", 
+        "deliverable-based"
+    ] = Field(
+        ...,
+        description="How the vendor is compensated for the work performed"
+    )
+    
+    duration_model: Literal[
+        "ongoing", 
+        "long-term", 
+        "project-based", 
+        "ad hoc"
+    ] = Field(
+        ...,
+        description="The temporal structure of the engagement"
+    )
