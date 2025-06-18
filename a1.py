@@ -1,25 +1,37 @@
 from pydantic import BaseModel, Field
-from typing import Literal
+from typing import List, Literal
 
-class BusinessContextModel(BaseModel):
-    primary_goal: Literal[
-        "advisory", 
-        "modernization", 
-        "operational continuity", 
-        "upgrade", 
-        "compliance", 
-        "strategic planning", 
-        "technical delivery", 
-        "support"
-    ] = Field(..., description="The main business purpose of the service being contracted. Select the most representative goal based on the contract's stated intent.")
-    
-    business_area: Literal[
-        "infrastructure", 
-        "application development", 
-        "data and analytics", 
-        "compliance and risk", 
-        "automation", 
-        "IT operations", 
-        "enterprise architecture", 
-        "cloud and platform engineering"
-    ] = Field(..., description="The business or technical domain where the service is applied, based on the contract scope and language.")
+class ScopeDeliveryModel(BaseModel):
+    service_summary: str = Field(
+        ..., description="A concise plain-language summary (2–4 sentences) of the service described in the contract."
+    )
+
+    service_function_type: Literal[
+        "operational support",
+        "software engineering",
+        "quality assurance",
+        "advisory consulting",
+        "technical implementation",
+        "system integration",
+        "application modernization",
+        "project management",
+        "other"
+    ] = Field(..., description="Primary function of the service delivered under the contract.")
+
+    includes_development_work: Literal[True, False] = Field(
+        ..., description="Whether the service includes hands-on development, coding, or solution delivery."
+    )
+
+    focus_area_keywords: List[str] = Field(
+        ..., description="List of key topics or terms indicating the technical or business focus of the service."
+    )
+
+    delivery_model: Literal[
+        "dedicated team",
+        "centralized help desk",
+        "on-demand tickets",
+        "individual contributors",
+        "staff augmentation",
+        "hybrid",
+        "other"
+    ] = Field(..., description="How the service is delivered and organized from a staffing and structure perspective.")
