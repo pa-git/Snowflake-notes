@@ -1,13 +1,10 @@
-<INSTRUCTIONS>
+from typing import Literal, Optional
+from pydantic import BaseModel, Field
 
-Analyze the input text to extract the fee breakdown or invoicing schedule mentioned in the contract.
-
-For each invoicing or fee schedule item, extract:
-
-- date: The invoicing date, if specified.
-- amount: The fee amount stated for the invoicing item.
-- currency: The currency in which the fee is expressed.
-
-If any field is not explicitly mentioned in the text, return an empty string.
-
-</INSTRUCTIONS>
+class TravelAndExpenseDetail(BaseModel):
+    description: str = Field(..., description="Description of the travel and expense terms as stated in the contract.")
+    fee_type: Literal["reimbursable", "non-reimbursable", "pass-through"] = Field(..., description="The type of T&E fee as classified in the contract.")
+    cap_amount: Optional[float] = Field(None, description="Maximum reimbursable or allowable amount for T&E, if a cap is defined.")
+    currency: Optional[str] = Field(None, description="Currency in which the T&E cap or costs are stated (e.g., USD, EUR).")
+    billing_method: Optional[Literal["actuals", "per diem", "estimated"]] = Field(None, description="The method by which T&E costs are calculated or billed.")
+    approval_required: Optional[bool] = Field(None, description="Whether prior approval is required for the T&E to be reimbursed.")
