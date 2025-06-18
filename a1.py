@@ -1,15 +1,16 @@
 <INSTRUCTIONS>
 
-Analyze the input text to determine whether the contract includes any resource groups or individuals that qualify as non-conforming based on their billing or staffing status.
+Analyze the input text to identify all financial details associated with the service described in the contract.
 
-Non-conforming resources are typically used for internal cost tracking, not tied to direct delivery, and are often referred to using the following terms: bench, free, non-billable, idle, or cost-center only.
+Extract the following fields:
 
-If any non-conforming resources are found, extract the following fields:
-
-- resource_description: A short description or name identifying the resource group or role (e.g., "QA bench", "non-billable developers").
-- non_conformity_type: Must be one of the following — non-billable, bench, or free.
-
-If no non-conforming resources are found, return:
-{ "non_conforming_resources": [] }
+- total_fee_amount_before_discount: The total fee stated before any discounts are applied.
+- discount: The discount amount applied to the fee (expressed as a numeric value).
+- discount_rate: The discount expressed as a percentage of the original fee.
+- total_fee_amount_after_discount: The net fee amount after applying the discount.
+- total_fee_currency: The currency in which the total fee is specified (e.g., USD, EUR).
+- applicable_taxes: Any taxes, tax rates, or tax-related notes included in the contract.
+- fee_classification: Classification of the fee as variable, fixed, or any other specified type.
+- notes: Any relevant exclusions, conditions, or special terms related to the fees for this service.
 
 </INSTRUCTIONS>
