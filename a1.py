@@ -1,9 +1,10 @@
-- service_function_type: Identify the primary functional nature of the service delivered. Choose one of the following values:
-  - "operational support": For services involving continuous support operations such as application monitoring, help desk, release management, or infrastructure operations.
-  - "software development": For services focused on building, customizing, or extending applications, including coding, integration, or modernization.
-  - "quality and testing": For services focused on validation activities, including QA, test automation, UAT, or defect verification.
-  - "consulting and advisory": For strategic or planning-oriented services such as analysis, architecture design, or management consulting—typically without direct hands-on implementation.
-  - "technical implementation": For hands-on work setting up platforms, configuring systems, or deploying packaged tools—without full custom development.
-  - "data and analytics": For services involving dashboards, BI, reporting platforms, data pipeline setup, or analytics automation.
-  - "project delivery": For general-purpose, outcome-based projects with vague or flexible scope—used when work doesn't fall neatly under other defined technical categories.
-  - "other": If none of the above apply; use only when the service function is outside defined categories.
+class Deliverable(BaseModel):
+    description: str = Field(..., description="Description of the output or item delivered for this milestone.")
+
+class Milestone(BaseModel):
+    milestone_number: int = Field(..., description="The order number of the milestone.")
+    milestone_title: str = Field(..., description="Title or label of the milestone.")
+    milestone_description: str = Field(..., description="Short narrative of what this milestone is about.")
+    activities: str = Field(..., description="List or description of activities required to reach this milestone.")
+    deliverables: List[Deliverable] = Field(..., description="List of deliverables associated with this milestone.")
+    due_date: date = Field(..., description="Expected delivery date of the milestone.")
