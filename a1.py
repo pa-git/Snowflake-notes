@@ -1,1 +1,3 @@
-a shorter, cleaned version of the contract page that preserves all original meaning without removing any legal, financial, or operational information.
+import shutil
+
+shutil.rmtree("path/to/your/folder")
