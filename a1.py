@@ -1,8 +1,7 @@
-def has_full_contract_json(subfolder_name, base_folder):
+def has_file(subfolder_name, base_folder, file_name):
     """
-    Given a subfolder name and base folder path,
-    return True if full_contract.json exists in that subfolder, else False.
+    Given a subfolder name, base folder, and file name,
+    return True if the file exists in that subfolder, else False.
     """
-    full_path = os.path.join(base_folder, subfolder_name)
-    target_file = os.path.join(full_path, "full_contract.json")
-    return os.path.isfile(target_file)
+    full_path = os.path.join(base_folder, subfolder_name, file_name)
+    return os.path.isfile(full_path)
