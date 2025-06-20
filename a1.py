@@ -1,35 +1,38 @@
-user_prompt = f"""
-<LEGAL_ENTITIES>
-{entity_candidates}
-</LEGAL_ENTITIES>
+# Step 3: Create canonical legal entities and relationships
+def load_canonical_entities(grouped_entities):
+    for group in grouped_entities:
+        canon = group["entity_group"]
+        variants = group["matches"]
 
-<INSTRUCTIONS>
-Analyze the list of legal entity strings and classify each into one of the following groups:
-- A canonical Morgan Stanley legal entity (must match exactly from the provided list)
-- "Other" if it is not a known Morgan Stanley legal entity
+        canonical_node = CanonicalEntity.nodes.get_or_none(name=canon)
+        if not canonical_node:
+            canonical_node = CanonicalEntity(name=canon).save()
+            print(f"✅ Created Canonical Entity: {canon}")
 
-Return the result as a JSON array of objects.
+        # Link Entities
+        for v in variants:
+            entity_nodes = Entity.nodes.filter(name=v)
+            for e in entity_nodes:
+                if not e.is_canonical_entity.is_connected(canonical_node):
+                    e.is_canonical_entity.connect(canonical_node)
+                    print(f"  ↳ Linked: {v} → {canon}")
 
-Each object must contain:
-- "entity_group": the canonical Morgan Stanley legal entity name, or "Other"
-- "matches": a list of entity strings assigned to that group
 
-Respond as JSON array:
-[
-  {{
-    "entity_group": "...",
-    "matches": ["...", "..."]
-  }}
-]
+def run():
+    print("📥 Fetching legal entities...")
+    companies = get_distinct_company_names()
+    print(f"📊 Total companies to disambiguate: {len(companies)}")
 
-Guidelines:
-- Use only entity_group values from the provided canonical list, or "Other"
-- Assign every string to exactly one group
-- Use "Other" for:
-  - Personal names (e.g., "Jane Doe", "Swapnil Gupta")
-  - Third-party companies
-  - Unknown or ambiguous entries
-  - Variants of Morgan Stanley entities that do not match exactly
-- Do not invent or modify group names
-</INSTRUCTIONS>
-"""
+    batch_size = 100
+    total_batches = (len(companies) + batch_size - 1) // batch_size
+
+    for i in range(0, len(companies), batch_size):
+        batch = companies[i:i + batch_size]
+        print(f"\n🔍 Processing batch {i // batch_size + 1} of {total_batches} ({len(batch)} records)...")
+        try:
+            groups = generate_canonical_entity_groups(batch)
+            load_canonical_entities(groups)
+        except Exception as e:
+            print(f"❌ Failed to process batch {i // batch_size + 1}: {e}")
+
+    print("\n✅ Canonical legal entity mapping complete.")
