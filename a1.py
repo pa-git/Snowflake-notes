@@ -1,12 +1,13 @@
-import os, json
+import os
 from dotenv import load_dotenv
 from neomodel import db, config
 from models import Role
 
+# Load environment
 load_dotenv()
 config.DATABASE_URL = os.getenv("DATABASE_URL")
 
-# --- Currency normalization and exchange ---
+# Normalize currencies
 CURRENCY_NORMALIZATION = {
     "USD": "USD", "usd": "USD",
     "INR": "INR", "₹": "INR",
@@ -17,7 +18,8 @@ CURRENCY_NORMALIZATION = {
     "HUF": "HUF"
 }
 
-EXCHANGE_RATES_USD = {
+# Mid-market USD exchange rates (June 2025)
+EXCHANGE_RATES = {
     "USD": 1.0,
     "INR": 1 / 86.62,
     "CNY": 1 / 7.18,
@@ -33,77 +35,75 @@ EXCHANGE_RATES_USD = {
     "HUF": 0.0028,
 }
 
-# --- Rate period conversion to hourly multiplier ---
-RATE_PERIOD_TO_HOURLY = {
-    "hourly": 1,
-    "daily": 1 / 8,
-    "weekly": 1 / 40,
-    "monthly": 1 / 160,
-    "annually": 1 / 1920,
-    "annual": 1 / 1920,
-    "total": 1,  # No scaling applied
-    "project": 1,  # Assume entire project is 1 fee
-    "initial period fee": 1,
-    "perlocation": 1,
-    "2 hours + travel": 1 / 2  # Estimate as 2 hours only
+# Hours per period
+PERIOD_MULTIPLIERS = {
+    "Hourly": 1,
+    "Daily": 1 / 8,
+    "Weekly": 1 / 40,
+    "Monthly": 1 / 160,
+    "Annually": 1 / 1920,
+    "2 hours + travel": 1 / 8,
+    "Initial Period Fee": 1,
+    "Total": 1,
+    "PerLocation": 1,
+    "Project": 1
 }
 
-def normalize_currency(currency):
-    if not currency:
-        raise ValueError("No currency provided")
-    key = currency.strip().upper()
-    norm = CURRENCY_NORMALIZATION.get(key)
+def normalize_currency(curr):
+    if not curr:
+        raise ValueError("Missing currency")
+    curr = curr.strip().upper()
+    norm = CURRENCY_NORMALIZATION.get(curr)
     if not norm:
-        raise ValueError(f"Unsupported currency: {currency}")
+        raise ValueError(f"Unsupported currency: {curr}")
     return norm
 
-def convert_to_usd(amount, raw_currency):
-    curr = normalize_currency(raw_currency)
-    rate = EXCHANGE_RATES_USD.get(curr)
+def to_usd(amount, currency):
+    currency = normalize_currency(currency)
+    rate = EXCHANGE_RATES.get(currency)
     if rate is None:
-        raise ValueError(f"No USD rate for: {curr}")
+        raise ValueError(f"No USD exchange rate for: {currency}")
     return amount * rate
 
-def convert_to_hourly(rate, period):
-    if not period:
-        raise ValueError("Missing rate period")
-    key = period.strip().lower()
-    if key not in RATE_PERIOD_TO_HOURLY:
+def to_hourly(rate, period):
+    period = (period or "").strip()
+    mult = PERIOD_MULTIPLIERS.get(period)
+    if mult is None:
         raise ValueError(f"Unsupported rate period: {period}")
-    return rate * RATE_PERIOD_TO_HOURLY[key]
+    return rate * mult
 
-def standardize_role_rates():
-    query = """
-    MATCH (r:Role)
-    RETURN r.uid AS uid, r.rate AS rate,
-           r.rate_period AS period, r.rate_currency AS currency,
-           r.total_fees AS fees
-    """
-    results, _ = db.cypher_query(query)
-    output = []
+def standardize_roles():
+    roles = Role.nodes.all()
+    updated = 0
+    skipped = 0
 
-    for uid, rate, period, currency, fees in results:
+    for r in roles:
         try:
+            # Inputs
+            rate = float(r.rate) if r.rate else 0.0
+            total_fees = float(r.total_fees) if r.total_fees else 0.0
+            currency = r.rate_currency
+            period = r.rate_period
+
             if not currency or currency.lower() == "percent":
-                raise ValueError("Invalid currency unit")
+                raise ValueError("Invalid or unsupported currency format")
 
-            rate_f = float(rate or 0)
-            fees_f = float(fees or 0)
+            # Compute USD values
+            hourly_usd = to_usd(to_hourly(rate, period), currency)
+            fees_usd = to_usd(total_fees, currency)
 
-            hourly_usd = convert_to_usd(convert_to_hourly(rate_f, period), currency)
-            fees_usd = convert_to_usd(fees_f, currency)
-
-            output.append({
-                "uid": uid,
-                "hourly_rate_usd": round(hourly_usd, 2),
-                "total_fees_usd": round(fees_usd, 2)
-            })
+            # Update Role node
+            r.standardized_hourly_rate = round(hourly_usd, 2)
+            r.standardized_total_fees = round(fees_usd, 2)
+            r.save()
+            print(f"✅ Updated role {r.uid}")
+            updated += 1
 
         except Exception as e:
-            print(f"⚠️ Skipped UID {uid} due to error: {e}")
+            print(f"⚠️ Skipped role {r.uid if 'r' in locals() else 'Unknown'}: {e}")
+            skipped += 1
 
-    print(json.dumps(output, indent=2))
-    return output
+    print(f"\n🏁 Done. {updated} roles updated, {skipped} skipped.")
 
 if __name__ == "__main__":
-    standardize_role_rates()
+    standardize_roles()
