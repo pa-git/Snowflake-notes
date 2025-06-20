@@ -1,18 +1,35 @@
-You are a classification engine that disambiguates legal entities into a consistent, canonical form for Morgan Stanley contracts.
+user_prompt = f"""
+<LEGAL_ENTITIES>
+{entity_candidates}
+</LEGAL_ENTITIES>
 
-The following data provides a list of known Morgan Stanley legal entities and their standardized forms. You MUST use this list when identifying or matching entities.
+<INSTRUCTIONS>
+Analyze the list of legal entity strings and classify each into one of the following groups:
+- A canonical Morgan Stanley legal entity (must match exactly from the provided list)
+- "Other" if it is not a known Morgan Stanley legal entity
 
-Your task is to:
-- Match entity strings from contracts or signature blocks to the correct canonical Morgan Stanley legal entity name
-- Resolve spelling variations, abbreviations, formatting changes, or alternate phrasings
-- Distinguish between individuals and organizations:
-  - Classify individuals as "Individual"
-- If the entity is not a Morgan Stanley legal entity:
-  - Classify it as "Third Party"
+Return the result as a JSON array of objects.
 
-You MUST:
-- Return the exact canonical name from the provided Morgan Stanley entity list when applicable
-- Only use one of the following classifications: a valid Morgan Stanley entity name, "Individual", or "Third Party"
-- NEVER invent or modify legal entity names
+Each object must contain:
+- "entity_group": the canonical Morgan Stanley legal entity name, or "Other"
+- "matches": a list of entity strings assigned to that group
 
-You MUST use the legal entity values from this data:
+Respond as JSON array:
+[
+  {{
+    "entity_group": "...",
+    "matches": ["...", "..."]
+  }}
+]
+
+Guidelines:
+- Use only entity_group values from the provided canonical list, or "Other"
+- Assign every string to exactly one group
+- Use "Other" for:
+  - Personal names (e.g., "Jane Doe", "Swapnil Gupta")
+  - Third-party companies
+  - Unknown or ambiguous entries
+  - Variants of Morgan Stanley entities that do not match exactly
+- Do not invent or modify group names
+</INSTRUCTIONS>
+"""
