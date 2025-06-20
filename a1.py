@@ -1,17 +1,21 @@
-def load_canonical_roles(grouped_roles):
-    for group in grouped_roles:
-        canon = group["name"]
-        variants = group["matches"]
+Group the role names into the appropriate Role Groups.
 
-        canon_node = CanonicalRole.nodes.get_or_none(name=canon)
-        if not canon_node:
-            canon_node = CanonicalRole(name=canon).save()
-            print(f"✅ Created Canonical Role: {canon}")
+You will receive a list of raw role names. Your task is to assign each role to a valid ROLE_GROUP from the provided list.
 
-        # Link Roles
-        for v in variants:
-            role_nodes = Role.nodes.filter(name=v)
-            for r in role_nodes:
-                if not r.is_canonical_role.is_connected(canon_node):
-                    r.is_canonical_role.connect(canon_node)
-                    print(f"  ↳ Linked: {v} → {canon}")
+Return the result as a JSON array of objects.
+
+Each object must contain:
+
+"role_group": the name of the group (must match one of the ROLE_GROUPS exactly)
+
+"matches": a list of role names assigned to that group
+
+Guidelines:
+
+You must use one of the provided ROLE_GROUP values — do not invent new groups.
+
+Choose the closest match based on the meaning of the role title.
+
+Only use "Other" if no suitable group exists.
+
+Ensure all roles are placed in one of the categories — none should be left out.
