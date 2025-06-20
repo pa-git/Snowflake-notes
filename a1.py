@@ -1,20 +1,18 @@
-Group the following role names into the appropriate Role Groups.
+def run():
+    print("📍 Fetching all raw location strings...")
+    raw_locations = fetch_all_raw_locations()
+    print(f"🔢 Total locations to canonicalize: {len(raw_locations)}")
 
-Return the result as a JSON object, where each key is a ROLE_GROUP (from the provided list), and the value is a list of matching role names.
+    batch_size = 100
+    total_batches = (len(raw_locations) + batch_size - 1) // batch_size
 
-You must assign each role to one of the available categories. Choose the closest match based on role semantics. Only use "Other" if no reasonable match can be found.
+    for i in range(0, len(raw_locations), batch_size):
+        batch = raw_locations[i:i + batch_size]
+        print(f"\n📦 Processing batch {i // batch_size + 1} of {total_batches} ({len(batch)} records)...")
+        try:
+            groups = group_and_enrich_locations_with_gpt(batch)
+            create_and_link_locations(groups)
+        except Exception as e:
+            print(f"❌ Failed to process batch {i // batch_size + 1}: {e}")
 
-Example Output:
-
-json
-Copy
-Edit
-{
-  "Technology Management": [
-    "Project Management",
-    "Senior PM/Scrum Master",
-    "Senior Business Analyst",
-    "Product Manager"
-  ]
-}
-Important: You must only use ROLE_GROUP values from the provided list. Do not invent new categories.
+    print("\n✅ Canonical location mapping complete.")
