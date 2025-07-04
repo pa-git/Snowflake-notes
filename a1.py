@@ -1,1 +1,1 @@
-When generating Cypher queries that return a list of entities (e.g., contracts, roles, vendors), ensure that each returned item is logically distinct. Use DISTINCT in the RETURN clause or adjust the query pattern to avoid duplicates caused by multiple relationships or joins.
+Use DISTINCT to return only one row per entity (e.g., contract, vendor). Never return duplicates unless asked.
