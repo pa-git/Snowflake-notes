@@ -1,56 +1,60 @@
-# timing_callbacks.py
+# timing_debug.py
 import time
 import csv
+import pprint
 from collections import defaultdict
 from crewai import Agent, Task, Crew, Process
 
-_task_start = {}
-_task_durations = defaultdict(float)
 CSV_FILE = "task_timings.csv"
 
-def step_timer(event, **kwargs):
-    """Mark the start time when the first step of a task begins."""
-    task_id = getattr(event, "task_id", None) or event.get("task_id")
-    if task_id and task_id not in _task_start:
-        _task_start[task_id] = time.perf_counter()
+_started = {}
+_durations = defaultdict(float)
+
+def step_timer(event, **_):
+    """Start stopwatch on first step, and print the raw event we get."""
+    print("\n=== step_callback fired ===")
+    print("Type:", type(event))
+    try:
+        pprint.pprint(event.__dict__)
+    except Exception:
+        print("Repr:", event)
+    print("===========================\n")
+
+    name = getattr(event, "name", None) or getattr(event, "task_name", None)
+    if name and name not in _started:
+        _started[name] = time.perf_counter()
 
 def task_timer(task_output):
+    """Stop stopwatch on completion, and print the TaskOutput we get."""
+    print("\n=== task_callback fired ===")
+    print("Type:", type(task_output))
+    try:
+        pprint.pprint(task_output.__dict__)
+    except Exception:
+        print("Repr:", task_output)
+    print("===========================\n")
 
-    # Show all attributes and values of task_output
-    print("\n=== TaskOutput Debug ===")
-    pprint.pprint(vars(task_output))
-    print("========================\n")
-    
-    """Compute task duration and save to CSV."""
-    task_id = getattr(task_output, "task_id", None) or getattr(task_output, "id", None)
-    start = _task_start.pop(task_id, None)
+    name = getattr(task_output, "name", None) or "UnnamedTask"
+    start = _started.pop(name, None)
+    duration = (time.perf_counter() - start) if start is not None else 0.0
+    _durations[name] = duration
 
-    if start is not None:
-        duration = time.perf_counter() - start
-    else:
-        duration = 0.0
+    agent = getattr(task_output, "agent", "")
 
-    _task_durations[task_id] = duration
+    with open(CSV_FILE, "a", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        if f.tell() == 0:
+            w.writerow(["timestamp", "task_name", "duration_seconds", "agent"])
+        w.writerow([time.strftime("%Y-%m-%d %H:%M:%S"), name, f"{duration:.2f}", agent])
 
-    # task_output.task is usually the original Task object
-    task_name = getattr(task_output.task, "name", None) or "UnnamedTask"
-    description = getattr(task_output, "description", "")
-
-    # write to CSV
-    with open(CSV_FILE, mode="a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        if f.tell() == 0:  # add header only if file is new
-            writer.writerow(["task_id", "task_name", "description", "duration_seconds"])
-        writer.writerow([task_id, task_name, description, f"{duration:.2f}"])
-
-    print(f"[Task {task_name}] '{description}' finished in {duration:.2f}s (saved to {CSV_FILE})")
+    print(f"[{name}] {duration:.2f}s → logged to {CSV_FILE}")
 
 def get_task_durations():
-    return dict(_task_durations)
+    return dict(_durations)
 
-# --- Example wiring ---
+# -------- Example wiring --------
 if __name__ == "__main__":
-    researcher = Agent(role="Researcher", goal="Find facts", backstory="...")
+    researcher = Agent(role="Researcher", goal="Find facts", backstory="…")
 
     t1 = Task(name="ResearchTask", description="Find 3 recent items", agent=researcher)
     t2 = Task(name="SummaryTask", description="Summarize findings", agent=researcher, context=[t1])
@@ -65,4 +69,4 @@ if __name__ == "__main__":
     )
 
     crew.kickoff()
-    print("Durations recorded:", get_task_durations())
+    print("Durations:", get_task_durations())
