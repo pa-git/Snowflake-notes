@@ -1,24 +1,30 @@
-import csv
-import time
-import os
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-def save_task_durations_to_csv(crew):
-    # Unique filename: task_durations_YYYY-MM-DD_HH-MM-SS.csv
-    timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"task_durations_{timestamp}.csv"
+# Load the CSV
+df = pd.read_csv("your_dataset.csv")  # Replace with your actual file name
 
-    file_exists = os.path.exists(filename)
+# Optional: Convert duration_seconds to minutes or hours if values are too large
+df["duration_minutes"] = df["duration_seconds"] / 60
 
-    with open(filename, "a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        if not file_exists:
-            writer.writerow(["date", "time", "task_name", "duration_seconds"])
+# Set up the plot style
+sns.set(style="whitegrid")
 
-        for task in crew.tasks:
-            duration = task.execution_duration
-            if duration is not None:
-                date_str = time.strftime("%Y-%m-%d")
-                time_str = time.strftime("%H:%M:%S")
-                writer.writerow([date_str, time_str, task.name, f"{duration:.2f}"])
+# Plot the distribution of duration per crew_name
+plt.figure(figsize=(12, 6))
+sns.histplot(
+    data=df,
+    x="duration_minutes",
+    hue="crew_name",
+    multiple="stack",  # Use "dodge" for side-by-side histograms
+    bins=30,
+    kde=True
+)
 
-    print(f"Saved task durations to: {filename}")
+plt.title("Distribution of Processing Time (in Minutes) by Crew Name")
+plt.xlabel("Processing Time (Minutes)")
+plt.ylabel("Count")
+plt.legend(title="Crew Name")
+plt.tight_layout()
+plt.show()
