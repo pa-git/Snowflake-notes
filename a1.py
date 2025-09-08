@@ -1,30 +1,40 @@
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
+from typing import List
+import os
+import fitz  # PyMuPDF
 
-# Load the CSV
-df = pd.read_csv("your_dataset.csv")  # Replace with your actual file name
+def export_pages_with_images(pdf_path: str, output_dir: str) -> List[str]:
+    """
+    Scan a PDF and export full-page PNGs (200 DPI) only for pages that contain images.
 
-# Optional: Convert duration_seconds to minutes or hours if values are too large
-df["duration_minutes"] = df["duration_seconds"] / 60
+    Args:
+        pdf_path: Path to the input PDF file.
+        output_dir: Directory where page images should be saved.
 
-# Set up the plot style
-sns.set(style="whitegrid")
+    Returns:
+        A list of saved image file paths (one per page that contains at least one image).
+        Returns an empty list if no pages contain images.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    image_paths: List[str] = []
 
-# Plot the distribution of duration per crew_name
-plt.figure(figsize=(12, 6))
-sns.histplot(
-    data=df,
-    x="duration_minutes",
-    hue="crew_name",
-    multiple="stack",  # Use "dodge" for side-by-side histograms
-    bins=30,
-    kde=True
-)
+    # Open PDF
+    with fitz.open(pdf_path) as doc:
+        for page in doc:
+            # Detect embedded raster images on the page
+            has_images = bool(page.get_images(full=True))
+            if not has_images:
+                continue
 
-plt.title("Distribution of Processing Time (in Minutes) by Crew Name")
-plt.xlabel("Processing Time (Minutes)")
-plt.ylabel("Count")
-plt.legend(title="Crew Name")
-plt.tight_layout()
-plt.show()
+            # Render full page to a pixmap at 200 DPI
+            pix = page.get_pixmap(dpi=200)
+
+            # Name like: page_1.png, page_2.png, ...
+            filename = f"page_{page.number + 1}.png"
+
+            # Save each image in a path called image_path
+            image_path = os.path.join(output_dir, filename)
+            pix.save(image_path)
+
+            image_paths.append(image_path)
+
+    return image_paths
