@@ -200,3 +200,54 @@ class RatecardLookupTool(BaseTool):
 def make_lookup_tool(rate_card_csv: str = "rate_card.csv", fx_rates_csv: str = "fx-rates.csv") -> RatecardLookupTool:
     store = RatecardStore(rate_card_csv, fx_rates_csv)
     return RatecardLookupTool(store=store)
+
+# --------------------------- Import and build the tool ---------------------------
+
+from tools.ratecard_lookup_usd import make_lookup_tool
+
+# Initialize the tool from your CSVs
+lookup_tool = make_lookup_tool(
+    rate_card_csv="rate_card.csv",   # your vendor rate card file
+    fx_rates_csv="fx-rates.csv"      # your FX rates file
+)
+
+# --------------------------- Call it directly in Python ---------------------------
+
+# Example 1: valid filters
+result = lookup_tool.run(country="US", currency="USD", level="Manager", vendor="EY")
+print(result)
+# → list of row dicts, e.g.:
+# [
+#   {"vendor": "EY", "level": "Manager", "country": "US", "currency": "USD", "rate": 250, "usd_rate": 250.0},
+#   ...
+# ]
+
+# Example 2: invalid input
+result = lookup_tool.run(country="Mars", currency="USD", level="", vendor="")
+print(result)
+# → {
+#     "error": "Invalid country 'Mars'. Allowed: Canada, France, Germany, ...",
+#     "allowed_values": {
+#         "country": ["US","Canada",...],
+#         "currency": ["USD","CAD",...],
+#         "level": ["Staff","Associate",...],
+#         "vendor": ["EY","KPMG","Accenture","PWC"]
+#     }
+#   }
+
+# --------------------------- Register the tool with your CrewAI agent ---------------------------
+
+from crewai import Agent
+
+analyst = Agent(
+    role="Analyst",
+    goal="Answer questions about vendor rate cards.",
+    backstory="Knows how to look up rates in different countries and normalize them to USD.",
+    tools=[lookup_tool],   # register the tool
+)
+
+# Example agent call
+response = analyst("What is the USD rate for a Manager in the US at EY?")
+print(response)
+
+
