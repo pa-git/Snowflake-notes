@@ -1,14 +1,9 @@
-# vendor, country, currency must match
-mask = (
-    (ratecard["vendor"] == vendor)
-    & (ratecard["country"] == country)
-    & (ratecard["currency"] == current_currency)
-)
-
-# level: conditional
-if level:
-    mask &= ratecard["level"] == level
+if (df["location"] != "").any():   # at least one non-empty location
+    filtered = df[df["location"].str.lower() == "onsite"]
+    if filtered.empty:
+        print("⚠️ Non-empty locations found but no 'onsite' row.")
+        result = df  # fallback: keep all
+    else:
+        result = filtered
 else:
-    mask &= ratecard["level"] == ""  # match only rows where level is also empty
-
-row = ratecard[mask]
+    result = df  # keep as is if all are empty
