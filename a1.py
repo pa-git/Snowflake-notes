@@ -1,164 +1,155 @@
-# pip install mlflow or ensure it’s available in your on-prem env
 import os, json, tempfile, time, mlflow
 from datetime import datetime
 
-def _safe(obj, attr, default=None):
-    return getattr(obj, attr, default)
-
 def _maybe_dict(x):
-    # Convert pydantic/BaseModels or custom objects to plain dicts
     try:
-        if hasattr(x, "model_dump"):    # pydantic v2
-            return x.model_dump()
-        if hasattr(x, "dict"):          # pydantic v1
-            return x.dict()
+        if hasattr(x, "model_dump"): return x.model_dump()
+        if hasattr(x, "dict"): return x.dict()
     except Exception:
         pass
     return x
 
-def crew_to_trace(crew, run_inputs=None):
-    """
-    Convert a finished CrewAI run into a structured, serializable trace.
-    Works post-hoc—no callbacks/autolog required.
-    """
-    started_at = _safe(crew, "started_at") or datetime.utcnow().isoformat()
-    finished_at = datetime.utcnow().isoformat()
+def _first(*candidates):
+    for c in candidates:
+        if c is not None:
+            return c
+    return None
 
-    # Top-level crew metadata (best-effort across versions)
+def crew_to_trace_safe(crew, run_inputs=None, started_at=None, finished_at=None):
+    started_at = started_at or datetime.utcnow().isoformat()
+    finished_at = finished_at or datetime.utcnow().isoformat()
+
+    # --- Crew metadata (only rely on stable attrs)
     trace = {
         "crew": {
-            "name": _safe(crew, "name"),
-            "process": _safe(crew, "process"),          # e.g., "sequential"/"hierarchical"
-            "verbose": _safe(crew, "verbose"),
+            "name": getattr(crew, "name", None),
+            "process": getattr(crew, "process", None),  # e.g., Process.SEQUENTIAL/HIERARCHICAL
             "started_at": started_at,
             "finished_at": finished_at,
-            "inputs": run_inputs or _safe(crew, "inputs"),
+            "inputs": run_inputs,  # pass this from your runner
         },
         "agents": [],
         "tasks": [],
-        "usage": {},     # aggregate tokens/cost if you can derive them
+        "usage": {},
         "errors": [],
     }
 
-    # Agents
-    agents = _safe(crew, "agents", []) or []
-    for a in agents:
+    # --- Agents (robust)
+    for a in getattr(crew, "agents", []) or []:
+        llm = getattr(a, "llm", None)
         trace["agents"].append({
-            "role": _safe(a, "role"),
-            "goal": _safe(a, "goal"),
-            "backstory": _safe(a, "backstory"),
-            "llm": _safe(_safe(a, "llm", None), "model_name"),
-            "temperature": _safe(_safe(a, "llm", None), "temperature"),
-            "tools": [ _safe(t, "name") for t in _safe(a, "tools", []) or [] ],
+            "role": getattr(a, "role", None),
+            "goal": getattr(a, "goal", None),
+            "backstory": getattr(a, "backstory", None),
+            "llm_model": _first(getattr(llm, "model_name", None), getattr(llm, "model", None)),
+            "temperature": getattr(llm, "temperature", None) if llm else None,
+            "tools": [getattr(t, "name", repr(t)) for t in (getattr(a, "tools", []) or [])],
         })
 
-    # Tasks (inputs, outputs, intermediate steps, artifacts)
-    tasks = _safe(crew, "tasks", []) or []
-    for idx, t in enumerate(tasks):
-        # Common fields you can usually collect
-        t_in = _safe(t, "context") or _safe(t, "input") or _safe(t, "inputs")
-        t_out = _safe(t, "output") or _safe(t, "result") or _safe(t, "final_output")
-        t_summary = _safe(t, "summary")
-        t_json = _maybe_dict(_safe(t, "pydantic", None)) or _maybe_dict(_safe(t, "output_json", None))
-        t_steps = _safe(t, "intermediate_steps") or _safe(t, "history") or _safe(t, "log")
-        t_artifacts = []
-        # If your tasks save artifacts (files), gather their paths if available
-        if hasattr(t, "artifacts") and t.artifacts:
-            for art in t.artifacts:
-                # Normalize to dict
+    # --- Tasks (robust)
+    for idx, t in enumerate(getattr(crew, "tasks", []) or []):
+        # inputs/context (best effort)
+        t_in = _first(getattr(t, "input", None), getattr(t, "inputs", None), getattr(t, "context", None))
+        # outputs across versions/examples
+        t_out_txt = _first(getattr(t, "output", None), getattr(t, "result", None), getattr(t, "final_output", None))
+        t_json = _first(getattr(t, "output_json", None), getattr(t, "pydantic", None))
+        # optional traces
+        t_steps = _first(getattr(t, "intermediate_steps", None), getattr(t, "history", None), getattr(t, "log", None))
+        # artifacts (if any)
+        t_arts = []
+        arts = getattr(t, "artifacts", None)
+        if arts:
+            for art in arts:
                 if isinstance(art, dict):
-                    t_artifacts.append(art)
+                    t_arts.append(art)
                 else:
-                    t_artifacts.append({"name": _safe(art, "name"), "path": _safe(art, "path")})
+                    t_arts.append({"name": getattr(art, "name", None), "path": getattr(art, "path", None)})
 
-        # Any token/usage info hanging off the task or messages
-        usage = _safe(t, "usage") or {}
-        model = _safe(_safe(t, "agent", None), "llm", None)
-        model_name = _safe(model, "model_name")
+        # agent/model
+        agent = getattr(t, "agent", None)
+        agent_llm = getattr(agent, "llm", None)
+        model_name = _first(getattr(agent_llm, "model_name", None), getattr(agent_llm, "model", None))
+
+        # usage (only if you populated it during run)
+        usage = getattr(t, "usage", None) or {}
+
+        # capture a filtered shallow dump of unknown extras for debugging
+        extras = {}
+        try:
+            for k, v in (getattr(t, "__dict__", {}) or {}).items():
+                if k not in {"name","description","expected_output","agent","output","result","final_output",
+                             "output_json","pydantic","intermediate_steps","history","log","artifacts","usage",
+                             "input","inputs","context","status"}:
+                    # avoid huge/referential fields
+                    if isinstance(v, (str, int, float, bool, type(None), list, dict)):
+                        extras[k] = v
+        except Exception:
+            pass
 
         trace["tasks"].append({
             "idx": idx,
-            "name": _safe(t, "name"),
-            "agent_role": _safe(_safe(t, "agent", None), "role"),
-            "description": _safe(t, "description"),
-            "expected_output": _safe(t, "expected_output"),
-            "status": _safe(t, "status") or "completed",
+            "name": getattr(t, "name", None),
+            "agent_role": getattr(agent, "role", None),
+            "description": getattr(t, "description", None),
+            "expected_output": getattr(t, "expected_output", None),
+            "status": getattr(t, "status", "completed"),
             "model": model_name,
             "input": _maybe_dict(t_in),
-            "output_text": t_out if isinstance(t_out, (str, type(None))) else str(t_out),
+            "output_text": t_out_txt if (isinstance(t_out_txt, (str, type(None)))) else str(t_out_txt),
             "output_json": _maybe_dict(t_json),
-            "summary": t_summary,
             "intermediate_steps": _maybe_dict(t_steps),
-            "artifacts": t_artifacts,
+            "artifacts": t_arts,
             "usage": usage,
+            "extras": extras or None,
         })
 
     return trace
 
-def log_crew_trace_to_mlflow(
-    crew, trace=None, experiment="crewai", run_name=None, run_inputs=None
-):
-    """
-    Create one MLflow run for the whole crew + optional nested runs per task.
-    Stores a JSON trace artifact and logs high-level params/metrics.
-    """
+def log_crew_trace_to_mlflow(crew, experiment="crewai", run_name=None, run_inputs=None):
     mlflow.set_experiment(experiment)
-    run_name = run_name or f"Crew-{_safe(crew,'name') or 'unnamed'}-{int(time.time())}"
+    run_name = run_name or f"Crew-{getattr(crew,'name', 'unnamed')}-{int(time.time())}"
 
-    if trace is None:
-        trace = crew_to_trace(crew, run_inputs=run_inputs)
+    started_at = datetime.utcnow().isoformat()
+    trace = crew_to_trace_safe(crew, run_inputs=run_inputs, started_at=started_at)
 
-    # Compute some quick metrics
-    num_tasks = len(trace["tasks"])
-    num_agents = len(trace["agents"])
-    # If you have usage info (tokens/cost), aggregate it here
-    total_prompt_tokens = 0
-    total_completion_tokens = 0
-    for t in trace["tasks"]:
-        u = t.get("usage") or {}
-        total_prompt_tokens += int(u.get("prompt_tokens", 0))
-        total_completion_tokens += int(u.get("completion_tokens", 0))
+    # aggregate simple metrics
+    n_tasks = len(trace["tasks"])
+    n_agents = len(trace["agents"])
+    p_tokens = sum(int((t.get("usage") or {}).get("prompt_tokens", 0)) for t in trace["tasks"])
+    c_tokens = sum(int((t.get("usage") or {}).get("completion_tokens", 0)) for t in trace["tasks"])
 
     with mlflow.start_run(run_name=run_name):
-        # Params (string-ish, small)
         mlflow.log_params({
-            "crew_name": trace["crew"].get("name"),
-            "process": trace["crew"].get("process"),
-            "num_agents": num_agents,
-            "num_tasks": num_tasks,
+            "crew_name": trace["crew"]["name"],
+            "process": str(trace["crew"]["process"]),
+            "num_agents": n_agents,
+            "num_tasks": n_tasks,
         })
-
-        # Metrics (numeric)
         mlflow.log_metrics({
-            "prompt_tokens_total": total_prompt_tokens,
-            "completion_tokens_total": total_completion_tokens,
+            "prompt_tokens_total": p_tokens,
+            "completion_tokens_total": c_tokens,
         })
 
-        # Save a rich JSON trace + per-task JSONL for easy querying
+        # write full trace + JSONL of tasks
+        import tempfile, os, json
         with tempfile.TemporaryDirectory() as td:
-            trace_path = os.path.join(td, "trace.json")
-            tasks_path = os.path.join(td, "tasks.jsonl")
-
-            with open(trace_path, "w", encoding="utf-8") as f:
+            with open(os.path.join(td, "trace.json"), "w", encoding="utf-8") as f:
                 json.dump(trace, f, ensure_ascii=False, indent=2)
-
-            with open(tasks_path, "w", encoding="utf-8") as f:
+            with open(os.path.join(td, "tasks.jsonl"), "w", encoding="utf-8") as f:
                 for t in trace["tasks"]:
                     f.write(json.dumps(t, ensure_ascii=False) + "\n")
-
             mlflow.log_artifacts(td, artifact_path="crewai_trace")
 
-        # Optionally: nested runs per task (handy for filtering in UI)
+        # optional: child runs per task
         for t in trace["tasks"]:
-            tr_name = f"task-{t.get('idx')}-{t.get('name') or 'unnamed'}"
+            tr_name = f"task-{t['idx']}-{t.get('name') or 'unnamed'}"
             with mlflow.start_run(run_name=tr_name, nested=True):
                 mlflow.log_params({
-                    "task_idx": t.get("idx"),
+                    "task_idx": t["idx"],
                     "task_name": t.get("name"),
                     "agent_role": t.get("agent_role"),
                     "model": t.get("model"),
                 })
-                # Small text fields as artifacts to avoid param size limits
                 with tempfile.TemporaryDirectory() as td2:
                     for fname, payload in [
                         ("input.json", t.get("input")),
@@ -166,14 +157,13 @@ def log_crew_trace_to_mlflow(
                         ("output_json.json", t.get("output_json")),
                         ("intermediate_steps.json", t.get("intermediate_steps")),
                         ("artifacts.json", t.get("artifacts")),
+                        ("extras.json", t.get("extras")),
                     ]:
                         p = os.path.join(td2, fname)
-                        with open(p, "w", encoding="utf-8") as f:
-                            json.dump(payload, f, ensure_ascii=False, indent=2) if fname.endswith(".json") else f.write(str(payload or ""))
+                        if fname.endswith(".json"):
+                            json.dump(payload, open(p, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+                        else:
+                            open(p, "w", encoding="utf-8").write(str(payload or ""))
                     mlflow.log_artifacts(td2, artifact_path="task_payloads")
 
     return trace
-
-# --- Example usage after your run ---
-# result = crew.kickoff(inputs={...})  # or however you run it on-prem
-# trace = log_crew_trace_to_mlflow(crew, run_inputs={"your":"inputs"})
