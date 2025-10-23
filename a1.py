@@ -1,79 +1,70 @@
-def log_crew_trace_to_mlflow(
-    crew,
-    experiment: str = "crewai",
-    run_name: str | None = None,
-    run_inputs: dict | list | None = None,
-    crew_result: object | None = None,
-    nested_tasks: bool = True,
-    crew_result_is_markdown: bool = True,   # <-- tell the logger it's MD
-):
-    import mlflow, os, json, tempfile
-    from datetime import datetime
+def unpack_crew(crew, depth=2):
+    """
+    Print a readable summary of everything available inside a CrewAI Crew object.
+    depth controls how deep to recurse (default: 2)
+    """
+    from pprint import pprint
 
-    mlflow.set_experiment(experiment)
-    run_name = run_name or f"Crew-{getattr(crew,'name','unnamed')}-{int(datetime.utcnow().timestamp())}"
+    print(f"\n=== CREW SUMMARY ===")
+    print(f"Name:        {getattr(crew, 'name', None)}")
+    print(f"Process:     {getattr(crew, 'process', None)}")
+    print(f"Verbose:     {getattr(crew, 'verbose', None)}")
+    print(f"Num agents:  {len(getattr(crew, 'agents', []) or [])}")
+    print(f"Num tasks:   {len(getattr(crew, 'tasks', []) or [])}")
+    print("-" * 60)
 
-    trace = crew_to_trace_safe(
-        crew,
-        run_inputs=run_inputs,
-        started_at=datetime.utcnow().isoformat(),
-        finished_at=datetime.utcnow().isoformat(),
-    )
+    # --- Agents ---
+    print("\n=== AGENTS ===")
+    for i, agent in enumerate(getattr(crew, "agents", []) or []):
+        print(f"\nAgent {i+1}: {getattr(agent, 'role', '(no role)')}")
+        print(f"  Goal:       {getattr(agent, 'goal', '')}")
+        print(f"  Backstory:  {getattr(agent, 'backstory', '')}")
+        llm = getattr(agent, "llm", None)
+        if llm:
+            print(f"  LLM model:  {getattr(llm, 'model_name', getattr(llm, 'model', '(unknown)'))}")
+            print(f"  Temperature:{getattr(llm, 'temperature', '(n/a)')}")
+        tools = getattr(agent, "tools", [])
+        if tools:
+            print("  Tools:")
+            for t in tools:
+                print(f"    - {getattr(t, 'name', str(t))}")
 
-    # Simple previews for the params table
-    inputs_preview  = (str(run_inputs)[:200]  if run_inputs is not None else None)
-    result_preview  = (str(crew_result)[:200] if crew_result is not None else None)
+    # --- Tasks ---
+    print("\n=== TASKS ===")
+    for i, task in enumerate(getattr(crew, "tasks", []) or []):
+        print(f"\nTask {i+1}: {getattr(task, 'name', '(no name)')}")
+        print(f"  Description:      {getattr(task, 'description', '')}")
+        print(f"  Expected Output:  {getattr(task, 'expected_output', '')}")
+        print(f"  Agent Role:       {getattr(getattr(task, 'agent', None), 'role', '')}")
+        print(f"  Async Execution:  {getattr(task, 'async_execution', '')}")
+        print(f"  Markdown:         {getattr(task, 'markdown', '')}")
+        print(f"  Output JSON Model:{getattr(task, 'output_json', '')}")
+        print(f"  Output Pydantic:  {getattr(task, 'output_pydantic', '')}")
+        print(f"  Guardrail:        {getattr(task, 'guardrail', '')}")
+        print(f"  Guardrail Retries:{getattr(task, 'guardrail_max_retries', '')}")
 
-    with mlflow.start_run(run_name=run_name):
-        # Params kept short
-        p = {
-            "crew_name": trace["crew"].get("name"),
-            "process": str(trace["crew"].get("process")),
-            "num_agents": len(trace["agents"]),
-            "num_tasks": len(trace["tasks"]),
-        }
-        if inputs_preview: p["inputs_preview"] = inputs_preview
-        if result_preview: p["result_preview"] = result_preview
-        mlflow.log_params(p)
+        # Output object if exists
+        output = getattr(task, "output", None)
+        if output:
+            print(f"  Has Output:       ✅")
+            print(f"    Raw:           {getattr(output, 'raw', '')[:200]}")
+            if getattr(output, 'json_dict', None):
+                print(f"    JSON keys:     {list(output.json_dict.keys())}")
+            if getattr(output, 'pydantic', None):
+                print(f"    Pydantic type: {type(output.pydantic).__name__}")
+        else:
+            print(f"  Has Output:       ❌")
 
-        # Artifacts: full trace + tasks JSONL + crew inputs + crew output (Markdown)
-        with tempfile.TemporaryDirectory() as td:
-            # 1) full trace
-            open(os.path.join(td, "trace.json"), "w", encoding="utf-8").write(
-                json.dumps(trace, ensure_ascii=False, indent=2)
-            )
-            # 2) tasks.jsonl
-            with open(os.path.join(td, "tasks.jsonl"), "w", encoding="utf-8") as f:
-                for t in trace["tasks"]:
-                    f.write(json.dumps(t, ensure_ascii=False) + "\n")
-            # 3) crew_inputs.json (if provided)
-            if run_inputs is not None:
-                open(os.path.join(td, "crew_inputs.json"), "w", encoding="utf-8").write(
-                    json.dumps(run_inputs, ensure_ascii=False, indent=2, default=str)
-                )
-            # 4) crew result as Markdown (preferred) or JSON/text fallback
-            if crew_result is not None:
-                if crew_result_is_markdown and isinstance(crew_result, str):
-                    # save as .md so MLflow UI shows a readable text preview
-                    open(os.path.join(td, "crew_result.md"), "w", encoding="utf-8").write(crew_result)
+        # Context or inputs
+        context = getattr(task, "context", None)
+        if context:
+            print(f"  Context:          {context if len(str(context)) < 120 else str(context)[:120] + '...'}")
 
-                    # OPTIONAL: also render to HTML if you want a nicer preview in-browser
-                    try:
-                        import markdown as _md  # pip install markdown
-                        html = _md.markdown(crew_result, extensions=["extra","tables","fenced_code"])
-                        open(os.path.join(td, "crew_result.html"), "w", encoding="utf-8").write(html)
-                    except Exception:
-                        pass
-                else:
-                    # if it isn't plain MD, just dump a JSON/text version
-                    try:
-                        open(os.path.join(td, "crew_result.json"), "w", encoding="utf-8").write(
-                            json.dumps(crew_result, ensure_ascii=False, indent=2, default=str)
-                        )
-                    except Exception:
-                        open(os.path.join(td, "crew_result.txt"), "w", encoding="utf-8").write(str(crew_result))
+    print("\n=== OTHER ATTRIBUTES (Top Level) ===")
+    # Dump other top-level attributes, excluding noisy internals
+    exclude = {"agents", "tasks", "process", "name", "verbose"}
+    for attr, value in crew.__dict__.items():
+        if attr not in exclude:
+            print(f"{attr:20}: {type(value).__name__}")
 
-            mlflow.log_artifacts(td, artifact_path="crewai_trace")
-
-        # (nested task runs remain unchanged)
-    return trace
+    print("\n=== END OF CREW UNPACK ===\n")
