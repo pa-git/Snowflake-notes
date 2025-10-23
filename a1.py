@@ -1,13 +1,15 @@
-for t in trace["tasks"]:
-    tr_name = f"task-{t['idx']}-{t.get('name') or 'unnamed'}"
-    with mlflow.start_run(run_name=tr_name, nested=True):
-        # get the real Task object, not the trace dict
-        task_obj = crew.tasks[t["idx"]]
+import mlflow
 
-        # convert to milliseconds (handles seconds/ms/timedelta)
-        dur = getattr(task_obj, "execution_duration", None)
-        dur_ms = _to_ms(dur)  # use the helper you defined
+mlflow.set_experiment("AnalystCrew")
 
-        if dur_ms is not None:
-            mlflow.log_metric("duration_ms", dur_ms)
-            mlflow.log_metric("duration_s", round(dur_ms / 1000.0, 3))
+with mlflow.start_run(run_name="crew-run"):
+    with mlflow.start_span("crew.kickoff") as span:
+        span.set_inputs({"inputs": inputs})
+        result = crew.kickoff(inputs=inputs)
+        span.set_outputs({"result_preview": str(result)[:200]})
+
+    # per-task spans (example)
+    for task in crew.tasks:
+        with mlflow.start_span(f"task:{task.name}") as s:
+            s.set_inputs({"agent": getattr(task.agent, "role", None)})
+            s.set_outputs({"duration_ms": getattr(task, "execution_duration", None)})
