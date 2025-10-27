@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# backfill_role_embeddings.py
-# Populate vector embeddings for existing :Role nodes using OpenAI embeddings on `name`
+# Populate vector embeddings for existing :Role nodes using your generate_embeddings_scalar2()
+# and store them in r.role_embedding
 
 from __future__ import annotations
 from typing import List, Dict, Any
@@ -8,14 +8,12 @@ from neomodel import (
     StructuredNode, StringProperty, FloatProperty, ArrayProperty,
     db, config as neo_config
 )
-from openai import OpenAI
-import os
+from embeddings_factory import generate_embeddings_scalar2  # <-- your existing embedding generator
 
 # =========================
 # ====== CONSTANTS ========
 # =========================
-DATABASE_URL = "bolt://neo4j:password@localhost:7687"  # <-- your Neo4j Bolt URL
-OPENAI_MODEL = "text-embedding-3-small"                 # or "text-embedding-3-large"
+DATABASE_URL = "bolt://neo4j:password@localhost:7687"  # <-- update with your Neo4j connection string
 SIMILARITY   = "cosine"                                # "cosine" | "euclidean" | "dot"
 BATCH_SIZE   = 500                                     # number of nodes per batch
 MAX_NODES    = 0                                       # 0 = process all eligible nodes
@@ -25,36 +23,38 @@ DRY_RUN      = False                                   # True = compute but don'
 # =========================
 # ====== EMBEDDING ========
 # =========================
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-def embed(text: str) -> List[float]:
+def embed(texts: List[str]) -> List[List[float]]:
     """
-    Returns OpenAI embeddings for the input text as a list[float].
+    Wrapper for your existing embedding function.
+    Expects a list of strings and returns a list of list[float].
     """
-    if not text or not text.strip():
-        return [0.0] * 1536  # fallback vector
-    response = client.embeddings.create(model=OPENAI_MODEL, input=text)
-    return list(map(float, response.data[0].embedding))
+    if not texts:
+        return []
+    response = generate_embeddings_scalar2(texts)
+    return [[float(x) for x in vec] for vec in response]
 
 # -----------------------------------
 # 1) Neomodel model for existing Role
 # -----------------------------------
 class Role(StructuredNode):
     name = StringProperty()
-    embedding = ArrayProperty(FloatProperty(), default=[])
+    role_embedding = ArrayProperty(FloatProperty(), default=[])
 
 # ---------------------------------
 # 2) Helpers: index + batch upserts
 # ---------------------------------
 def ensure_vector_index(dim: int, similarity: str = "cosine") -> None:
+    """
+    Create a native vector index on :Role(role_embedding) if not already existing.
+    """
     similarity = similarity.lower()
     if similarity not in {"cosine", "euclidean", "dot"}:
         raise ValueError("similarity must be one of: cosine | euclidean | dot")
 
     cypher = f"""
-    CREATE INDEX role_embedding_idx IF NOT EXISTS
+    CREATE INDEX role_role_embedding_idx IF NOT EXISTS
     FOR (r:Role)
-    ON (r.embedding)
+    ON (r.role_embedding)
     OPTIONS {{
       indexProvider: 'vector-1.0',
       indexConfig: {{
@@ -66,8 +66,12 @@ def ensure_vector_index(dim: int, similarity: str = "cosine") -> None:
     db.cypher_query(cypher)
 
 def fetch_role_batch(skip: int, limit: int, force: bool = False) -> List[Dict[str, Any]]:
+    """
+    Fetch Role nodes in batches.
+    If force=False, only fetch those missing r.role_embedding.
+    """
     where_clause = (
-        "WHERE r.name IS NOT NULL AND (r.embedding IS NULL OR size(r.embedding) = 0)"
+        "WHERE r.name IS NOT NULL AND (r.role_embedding IS NULL OR size(r.role_embedding) = 0)"
         if not force else
         "WHERE r.name IS NOT NULL"
     )
@@ -84,12 +88,15 @@ def fetch_role_batch(skip: int, limit: int, force: bool = False) -> List[Dict[st
     return [{"eid": row[0], "name": row[1]} for row in res]
 
 def update_role_embeddings(rows: List[Dict[str, Any]]) -> int:
+    """
+    Batch update :Role(role_embedding)
+    """
     if not rows:
         return 0
     cypher = """
     UNWIND $rows AS row
     MATCH (r) WHERE elementId(r) = row.eid
-    SET r.embedding = row.embedding
+    SET r.role_embedding = row.embedding
     """
     db.cypher_query(cypher, {"rows": rows})
     return len(rows)
@@ -100,15 +107,15 @@ def update_role_embeddings(rows: List[Dict[str, Any]]) -> int:
 def main():
     neo_config.DATABASE_URL = DATABASE_URL
 
-    # Probe embedding dimension once
-    sample_vec = embed("dimension probe")
+    # Probe embedding dimension
+    sample_vec = embed(["dimension probe"])[0]
     sample_dim = len(sample_vec)
     print(f"[info] Detected embedding dimension: {sample_dim}")
 
-    # Ensure index
-    print("[info] Ensuring vector index on :Role(embedding)...")
+    # Ensure native vector index
+    print("[info] Ensuring vector index on :Role(role_embedding)...")
     ensure_vector_index(dim=sample_dim, similarity=SIMILARITY)
-    print("[ok] Index ensured (role_embedding_idx).")
+    print("[ok] Index ensured (role_role_embedding_idx).")
 
     total_processed = 0
     total_written = 0
@@ -127,12 +134,9 @@ def main():
         if not batch:
             break
 
-        to_write = []
-        for row in batch:
-            vec = embed(row["name"])
-            if len(vec) != sample_dim:
-                raise RuntimeError(f"Embedding size mismatch for '{row['name']}'")
-            to_write.append({"eid": row["eid"], "embedding": vec})
+        names = [r["name"] for r in batch]
+        vectors = embed(names)
+        to_write = [{"eid": r["eid"], "embedding": vec} for r, vec in zip(batch, vectors)]
 
         total_processed += len(batch)
 
